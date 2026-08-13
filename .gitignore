@@ -1,0 +1,32 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Runtime-generated files
+/storage/backups/*
+!/storage/backups/.gitkeep
+/storage/hydraulic/*
+!/storage/hydraulic/.gitkeep
+/storage/sessions/*
+!/storage/sessions/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/installed.lock
+
+# Database dumps containing local data
+/database/backups/
+
+# Local tools and accidental nested repository
+/aa/
+
+# Dependencies, IDE, and OS files
+/vendor/
+/node_modules/
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.cache

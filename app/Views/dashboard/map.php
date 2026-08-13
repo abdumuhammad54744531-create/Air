@@ -1,0 +1,4 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><section class="page-head"><div><p class="eyebrow">Sebaran perangkat</p><h2>Peta Monitoring</h2><p>Klik penanda untuk melihat kondisi lokasi dan alat.</p></div></section>
+<div class="panel p-3"><div class="map-toolbar"><div class="input-icon"><i class="bi bi-search"></i><input class="form-control" id="mapSearch" placeholder="Cari lokasi..."></div><select class="form-select" id="mapStatus"><option value="">Semua status</option><option value="aktif">Aktif</option><option value="offline">Offline</option><option value="dalam_perawatan">Dalam perawatan</option></select><div class="map-legend"><span><i class="normal"></i> Normal</span><span><i class="danger"></i> Offline</span><span><i class="maintenance"></i> Perawatan</span></div></div><div id="monitoringMap" data-locations='<?=e(json_encode($locations))?>'></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
