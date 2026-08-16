@@ -51,6 +51,7 @@ try {
     if (preg_match('#^water-results/(\d+)$#',$path,$m)) { (new WaterManagementController())->results((int)$m[1]); exit; }
     if ($path === 'water-sensor-monitoring') { (new WaterManagementController())->sensorMonitoring(); exit; }
     if ($path === 'water-sensor-monitoring/data') { (new WaterManagementController())->sensorMonitoringData(); exit; }
+    if ($path === 'sensors/google-sheet-data') { (new CrudController())->googleSheetData(); exit; }
     if ($path === 'water-reports') { (new WaterManagementController())->reports(); exit; }
     if ($path === 'network-projects') { (new NetworkProjectController())->handle($method); exit; }
     if ($path === 'automatic-design') { (new AutomaticDesignController())->index(); exit; }

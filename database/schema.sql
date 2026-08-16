@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS devices (
  warranty_until DATE, vendor VARCHAR(150), contract_number VARCHAR(100), power_source VARCHAR(50), communication_type VARCHAR(50), ip_address VARCHAR(45),
  sim_number VARCHAR(50), network_operator VARCHAR(80), send_interval_seconds INT DEFAULT 300, firmware_version VARCHAR(50), token VARCHAR(255),
  status VARCHAR(40) DEFAULT 'belum_dipasang', connection_status VARCHAR(40) DEFAULT 'tidak_diketahui', last_data_at DATETIME, last_heartbeat_at DATETIME,
- battery_voltage DECIMAL(8,2), signal_strength INT, physical_condition VARCHAR(100), photo VARCHAR(255), manual_document VARCHAR(255), notes TEXT,
+   battery_voltage DECIMAL(8,2), signal_strength INT, physical_condition VARCHAR(100), photo VARCHAR(255), manual_document VARCHAR(255), notes TEXT,
+   google_sheet_url VARCHAR(500), google_sheet_gid VARCHAR(40), google_sheet_name VARCHAR(150),
  is_public TINYINT(1) DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, deleted_at DATETIME NULL,
  FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE SET NULL, INDEX idx_device_status(status,connection_status), INDEX idx_device_location(location_id)
 ) ENGINE=InnoDB;
@@ -168,4 +169,3 @@ CREATE TABLE IF NOT EXISTS password_resets (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id BIGINT UNSIGNED, token_hash CHAR(64), expires_at DATETIME, used_at DATETIME,
  created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
-

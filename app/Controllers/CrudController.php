@@ -2,12 +2,13 @@
 namespace App\Controllers;
 
 use App\Core\Database;
+use App\Services\GoogleSheetSensorService;
 
 final class CrudController
 {
     private array $definitions = [
         'locations'=>['table'=>'locations','title'=>'Data Lokasi','fields'=>['code'=>'Kode Lokasi','name'=>'Nama Lokasi','type'=>'Jenis Lokasi','province'=>'Provinsi','city'=>'Kabupaten/Kota','district'=>'Kecamatan','village'=>'Desa/Kelurahan','address'=>'Alamat','latitude'=>'Latitude','longitude'=>'Longitude','elevation'=>'Ketinggian (m)','person_in_charge'=>'Penanggung Jawab','phone'=>'Nomor Telepon','email'=>'Email','description'=>'Deskripsi','is_active'=>'Status Aktif','is_public'=>'Tampil Publik']],
-        'devices'=>['table'=>'devices','title'=>'Data Alat','fields'=>['code'=>'Kode Alat','name'=>'Nama Alat','serial_number'=>'Nomor Seri','brand'=>'Merek','model'=>'Model','type'=>'Jenis Alat','location_id'=>'Lokasi','installed_at'=>'Tanggal Pemasangan','power_source'=>'Sumber Daya','communication_type'=>'Komunikasi','send_interval_seconds'=>'Interval Kirim (detik)','firmware_version'=>'Firmware','status'=>'Status','is_public'=>'Tampil Publik']],
+        'devices'=>['table'=>'devices','title'=>'Data Alat','fields'=>['code'=>'Kode Alat','name'=>'Nama Alat','serial_number'=>'Nomor Seri','brand'=>'Merek','model'=>'Model','type'=>'Jenis Alat','location_id'=>'Lokasi Sumber Air','google_sheet_url'=>'URL Google Sheet Data Sensor','google_sheet_gid'=>'ID Tab / GID Sheet','google_sheet_name'=>'Nama Tab Sheet','installed_at'=>'Tanggal Pemasangan','power_source'=>'Sumber Daya','communication_type'=>'Komunikasi','send_interval_seconds'=>'Interval Kirim (detik)','firmware_version'=>'Firmware','status'=>'Status','is_public'=>'Tampil Publik']],
         'sensors'=>['table'=>'sensors','title'=>'Data Sensor','fields'=>['code'=>'Kode Sensor','name'=>'Nama Sensor','device_id'=>'Alat','parameter'=>'Parameter','unit'=>'Satuan','normal_min'=>'Normal Min','normal_max'=>'Normal Maks','warning_min'=>'Waspada Min','warning_max'=>'Waspada Maks','danger_min'=>'Bahaya Min','danger_max'=>'Bahaya Maks','calibration_factor'=>'Faktor Kalibrasi','offset_value'=>'Offset','decimal_places'=>'Desimal','status'=>'Status','is_public'=>'Tampil Publik','chart_color'=>'Warna Grafik']],
         'monitoring'=>['table'=>'sensor_readings','title'=>'Monitoring Data','readonly'=>true,'fields'=>[]],
         'alerts'=>['table'=>'alerts','title'=>'Peringatan','readonly'=>true,'fields'=>[]],
@@ -48,9 +49,35 @@ final class CrudController
         if (!$def) { http_response_code(404); return; }
         $def['required'] = $this->requiredFields[$module] ?? [];
         require_auth($def['roles'] ?? []);
+        if (in_array($module, ['devices', 'sensors'], true)) (new GoogleSheetSensorService())->ensureSchema();
+        if ($module === 'sensors' && $method === 'GET') { $this->sensorSheetIndex(); return; }
         if ($method === 'DELETE' || ($method === 'POST' && ($_POST['_method'] ?? '') === 'DELETE')) { $this->delete($module,$def,$id); return; }
         if ($method === 'POST') { $this->store($module, $def, $id); return; }
         $this->index($module, $def, $id);
+    }
+
+    public function googleSheetData(): void
+    {
+        require_auth();
+        $locationId = isset($_GET['location_id']) && ctype_digit((string)$_GET['location_id']) ? (int)$_GET['location_id'] : null;
+        try {
+            json_response((new GoogleSheetSensorService())->readings($locationId));
+        } catch (\Throwable $e) {
+            json_response(['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0], 503);
+        }
+    }
+
+    private function sensorSheetIndex(): void
+    {
+        $service = new GoogleSheetSensorService();
+        $locationId = isset($_GET['location_id']) && ctype_digit((string)$_GET['location_id']) ? (int)$_GET['location_id'] : null;
+        try {
+            $data = $service->readings($locationId);
+        } catch (\Throwable $e) {
+            $data = ['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat. Pastikan URL sheet dapat diakses publik.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0];
+        }
+        $locations = $service->locations();
+        view('water/google-sheet-sensors', compact('data', 'locations', 'locationId') + ['title'=>'Data Sensor']);
     }
 
     private function index(string $module, array $def, ?int $id): void

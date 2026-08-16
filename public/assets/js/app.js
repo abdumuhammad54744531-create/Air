@@ -799,6 +799,36 @@ document.addEventListener('DOMContentLoaded',()=>{
       }catch(error){}
     },Math.max(5,+sensorMonitor.dataset.refreshSeconds||10)*1000);
   }
+  const googleSheetSensors=document.querySelector('[data-google-sheet-sensors]');
+  if(googleSheetSensors){
+    const tableRows=document.querySelector('#googleSheetSensorRows'),recordCount=document.querySelector('#googleSheetRecordCount'),syncStatus=document.querySelector('#googleSheetSyncStatus');
+    const showValue=value=>value===null||value===undefined||value===''?'—':String(value);
+    const renderGoogleSheetRows=rows=>{
+      if(!tableRows)return;
+      tableRows.replaceChildren();
+      if(!rows.length){
+        const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=11;td.className='text-center text-secondary py-4';td.textContent='Belum ada data sensor dari Google Sheet untuk lokasi ini.';tr.append(td);tableRows.append(tr);return;
+      }
+      rows.forEach((row,index)=>{
+        const tr=document.createElement('tr');
+        [index+1,row.date,row.time,row.location_name,row.device_name,row.temperature,row.ph,row.tds,row.velocity,row.water_level,row.sheet_name].forEach(value=>{const td=document.createElement('td');td.textContent=showValue(value);tr.append(td)});
+        tableRows.append(tr);
+      });
+    };
+    const refreshGoogleSheet=async()=>{
+      try{
+        const endpoint=new URL(googleSheetSensors.dataset.endpoint,window.location.origin),locationId=googleSheetSensors.dataset.locationId;
+        if(locationId&&locationId!=='0')endpoint.searchParams.set('location_id',locationId);
+        const response=await fetch(endpoint,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok)throw new Error('Gagal memuat data');
+        const payload=await response.json();renderGoogleSheetRows(payload.rows||[]);
+        if(recordCount)recordCount.textContent=`${(payload.rows||[]).length} data ditampilkan`;
+        if(syncStatus)syncStatus.innerHTML=`<i class="bi bi-clock-history"></i> Diperbarui ${escapeHtml(payload.updated_at||'-')} · ${Number(payload.device_count)||0} alat terhubung`;
+      }catch(error){
+        if(syncStatus)syncStatus.innerHTML='<i class="bi bi-exclamation-circle"></i> Sinkronisasi sementara gagal; data terakhir tetap ditampilkan.';
+      }
+    };
+    setInterval(refreshGoogleSheet,Math.max(10,+googleSheetSensors.dataset.refreshSeconds||30)*1000);
+  }
 });
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value??'';return d.innerHTML}
 function formatWaterNumber(value){return new Intl.NumberFormat('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2}).format(+value||0)}
