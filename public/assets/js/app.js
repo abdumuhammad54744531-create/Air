@@ -846,9 +846,23 @@ document.addEventListener('DOMContentLoaded',()=>{
   const publicSheetPortal=document.querySelector('[data-public-sheet-refresh]');
   if(publicSheetPortal){
     const refreshRateSelect=document.querySelector('#publicSheetRefreshRate'),refreshRateKey='simma-google-sheet-refresh-seconds';
-    const refreshSeconds=Math.max(5,+(localStorage.getItem(refreshRateKey)||refreshRateSelect?.value||publicSheetPortal.dataset.publicSheetRefresh||30));
-    if(refreshRateSelect){refreshRateSelect.value=String(refreshSeconds);refreshRateSelect.addEventListener('change',()=>{localStorage.setItem(refreshRateKey,refreshRateSelect.value);window.location.reload()})}
-    setInterval(()=>window.location.reload(),refreshSeconds*1000);
+    let publicRefreshTimer=null,latestAt=publicSheetPortal.dataset.publicSheetLatest||'';
+    const refreshSeconds=()=>Math.max(5,+(localStorage.getItem(refreshRateKey)||refreshRateSelect?.value||publicSheetPortal.dataset.publicSheetRefresh||30));
+    const checkPublicSheet=async()=>{
+      try{
+        const endpoint=new URL(publicSheetPortal.dataset.publicSheetStatusUrl,window.location.origin);
+        endpoint.searchParams.set('location',publicSheetPortal.dataset.publicLocationId||new URLSearchParams(window.location.search).get('location')||'');
+        const response=await fetch(endpoint,{cache:'no-store',headers:{Accept:'application/json'}});
+        const payload=await response.json();
+        // Halaman tidak dimuat ulang berulang-ulang. Muat ulang hanya sekali jika memang
+        // Google Sheet memiliki pembacaan yang lebih baru daripada yang sedang tampil.
+        if(payload.success&&payload.latest_at&&latestAt&&payload.latest_at!==latestAt)window.location.reload();
+        if(payload.latest_at)latestAt=payload.latest_at;
+      }catch(error){}
+    };
+    const schedulePublicRefresh=()=>{clearInterval(publicRefreshTimer);publicRefreshTimer=setInterval(checkPublicSheet,refreshSeconds()*1000)};
+    if(refreshRateSelect){refreshRateSelect.value=String(refreshSeconds());refreshRateSelect.addEventListener('change',()=>{localStorage.setItem(refreshRateKey,refreshRateSelect.value);schedulePublicRefresh();checkPublicSheet()})}
+    schedulePublicRefresh();
   }
 });
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value??'';return d.innerHTML}

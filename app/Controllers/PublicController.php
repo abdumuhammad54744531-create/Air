@@ -6,6 +6,21 @@ use App\Services\GoogleSheetSensorService;
 
 final class PublicController
 {
+    /** Lightweight endpoint used by the public page to check for a new sheet row. */
+    public function liveStatus(): void
+    {
+        $locationId=(int)($_GET['location']??0);
+        $devices=Database::query("SELECT d.id,d.google_sheet_url FROM devices d JOIN locations l ON l.id=d.location_id
+            WHERE d.location_id=? AND d.is_public=1 AND d.deleted_at IS NULL AND l.is_public=1 AND l.is_active=1 AND l.deleted_at IS NULL",[$locationId])->fetchAll();
+        $widthRow=Database::query("SELECT setting_value FROM application_settings WHERE setting_key='source_width' LIMIT 1")->fetch();
+        $readings=$this->googleSheetReadings($devices,(float)($widthRow['setting_value']??2.15));
+        json_response([
+            'success'=>true,
+            'latest_at'=>$readings[0]['recorded_at']??null,
+            'checked_at'=>date('Y-m-d H:i:s'),
+        ]);
+    }
+
     public function home(): void
     {
         $locations=Database::query("SELECT l.id,l.code,l.name,l.type,l.province,l.city,l.district,l.village,l.address,

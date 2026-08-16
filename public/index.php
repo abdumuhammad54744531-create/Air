@@ -38,6 +38,7 @@ if ($path === 'install' && is_file(App::ROOT . '/storage/installed.lock') && !En
 
 try {
     if ($path === 'install') { require App::ROOT . '/install/index.php'; exit; }
+    if ($path === 'publik/live-status') { (new PublicController())->liveStatus(); exit; }
     if ($path === '' || $path === 'publik') { (new PublicController())->home(); exit; }
     if ($path === 'login') { $method === 'POST' ? (new AuthController())->login() : (new AuthController())->form(); exit; }
     if ($path === 'logout') { (new AuthController())->logout(); exit; }
