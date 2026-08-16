@@ -1,4 +1,4 @@
-<?php $rows = $data['rows'] ?? []; $errors = $data['errors'] ?? []; $selectedDevice = $deviceId ?: 0; ?>
+<?php $rows = $data['rows'] ?? []; $errors = $data['errors'] ?? []; $selectedDeviceId = (int)($deviceId ?? 0); ?>
 <section class="page-head">
   <div>
     <p class="eyebrow">Manajemen data</p>
@@ -18,7 +18,7 @@
     <div class="col-md-7 col-lg-5"><label class="form-label mb-1" for="sheetDevice">Pilih Data Alat</label>
       <select class="form-select" name="device_id" id="sheetDevice" onchange="this.form.submit()">
         <?php if (!$devices): ?><option value="">Belum ada alat terhubung</option><?php endif ?>
-        <?php foreach ($devices as $device): ?><option value="<?= (int)$device['id'] ?>" <?= $selectedDevice === (int)$device['id'] ? 'selected' : '' ?>><?= e(($device['code'] ? $device['code'].' · ' : '').$device['name']) ?></option><?php endforeach ?>
+        <?php foreach ($devices as $device): ?><option value="<?= (int)$device['id'] ?>" <?= $selectedDeviceId === (int)$device['id'] ? 'selected' : '' ?>><?= e(($device['code'] ? $device['code'].' · ' : '').$device['name']) ?></option><?php endforeach ?>
       </select>
     </div>
     <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Tampilkan Data</button></div>
@@ -32,7 +32,7 @@
   <div class="alert alert-warning"><i class="bi bi-link-45deg"></i> Alat <strong><?= e($selectedDevice['code'].' · '.$selectedDevice['name']) ?></strong> belum dihubungkan ke URL Google Sheet. Isi URL dan GID-nya pada Data Alat terlebih dahulu.</div>
 <?php endif ?>
 
-<div class="panel" data-google-sheet-sensors data-endpoint="<?= url('sensors/google-sheet-data') ?>" data-device-id="<?= (int)$selectedDevice ?>" data-refresh-seconds="30">
+<div class="panel" data-google-sheet-sensors data-endpoint="<?= url('sensors/google-sheet-data') ?>" data-device-id="<?= $selectedDeviceId ?>" data-refresh-seconds="30">
   <div class="table-toolbar">
     <div><strong>Riwayat pembacaan sensor</strong><p class="mb-0 text-secondary small">Urutan berdasarkan tanggal dan waktu terbaru dari Google Sheet.</p></div>
     <span class="record-count" id="googleSheetRecordCount"><?= count($rows) ?> data ditampilkan</span>
