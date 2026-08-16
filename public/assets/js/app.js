@@ -811,6 +811,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const googleSheetSensors=document.querySelector('[data-google-sheet-sensors]');
   if(googleSheetSensors){
     const tableRows=document.querySelector('#googleSheetSensorRows'),recordCount=document.querySelector('#googleSheetRecordCount'),syncStatus=document.querySelector('#googleSheetSyncStatus');
+    const refreshRateSelect=document.querySelector('#googleSheetRefreshRate'),refreshRateKey='simma-google-sheet-refresh-seconds';
     const showValue=value=>value===null||value===undefined||value===''?'—':String(value);
     const renderGoogleSheetRows=rows=>{
       if(!tableRows)return;
@@ -836,11 +837,17 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(syncStatus)syncStatus.innerHTML='<i class="bi bi-exclamation-circle"></i> Sinkronisasi sementara gagal; data terakhir tetap ditampilkan.';
       }
     };
-    setInterval(refreshGoogleSheet,Math.max(10,+googleSheetSensors.dataset.refreshSeconds||30)*1000);
+    let sensorRefreshTimer=null;
+    const selectedRefreshSeconds=()=>Math.max(5,+(localStorage.getItem(refreshRateKey)||refreshRateSelect?.value||googleSheetSensors.dataset.refreshSeconds||30));
+    const scheduleSensorRefresh=()=>{clearInterval(sensorRefreshTimer);sensorRefreshTimer=setInterval(refreshGoogleSheet,selectedRefreshSeconds()*1000)};
+    if(refreshRateSelect){refreshRateSelect.value=String(selectedRefreshSeconds());refreshRateSelect.addEventListener('change',()=>{localStorage.setItem(refreshRateKey,refreshRateSelect.value);scheduleSensorRefresh();refreshGoogleSheet()})}
+    scheduleSensorRefresh();
   }
   const publicSheetPortal=document.querySelector('[data-public-sheet-refresh]');
   if(publicSheetPortal){
-    const refreshSeconds=Math.max(15,+publicSheetPortal.dataset.publicSheetRefresh||30);
+    const refreshRateSelect=document.querySelector('#publicSheetRefreshRate'),refreshRateKey='simma-google-sheet-refresh-seconds';
+    const refreshSeconds=Math.max(5,+(localStorage.getItem(refreshRateKey)||refreshRateSelect?.value||publicSheetPortal.dataset.publicSheetRefresh||30));
+    if(refreshRateSelect){refreshRateSelect.value=String(refreshSeconds);refreshRateSelect.addEventListener('change',()=>{localStorage.setItem(refreshRateKey,refreshRateSelect.value);window.location.reload()})}
     setInterval(()=>window.location.reload(),refreshSeconds*1000);
   }
 });

@@ -27,6 +27,7 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
     <span><b><?=e($selectedLocation['name']??'Belum ada lokasi publik')?></b><small><?=e(($selectedLocation['type']??'').' · '.($selectedLocation['city']??''))?></small></span>
     <strong><?=count($devices)?> <small>alat publik</small></strong>
   </div>
+  <label class="ms-auto d-flex align-items-center gap-2 small text-secondary">Pembaruan <select id="publicSheetRefreshRate" class="form-select form-select-sm" aria-label="Interval pembaruan web publik" style="width:auto"><option value="5">5 dtk</option><option value="10">10 dtk</option><option value="15">15 dtk</option><option value="30" selected>30 dtk</option><option value="60">1 mnt</option><option value="120">2 mnt</option></select></label>
 </section>
 <?php if($devices):?><section class="portal-devices">
   <?php foreach($devices as $device):?><article><i class="bi bi-router-fill"></i><span><b><?=e($device['name'])?></b><small><?=e($device['code'])?> · <?=e($device['type'])?></small></span><em class="<?=($device['connection_status']==='online')?'online':'offline'?>"><i></i><?=e(ucwords(str_replace('_',' ',$device['connection_status'])))?></em></article><?php endforeach?>

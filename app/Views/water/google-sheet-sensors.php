@@ -21,7 +21,8 @@
         <?php foreach ($devices as $device): ?><option value="<?= (int)$device['id'] ?>" <?= $selectedDeviceId === (int)$device['id'] ? 'selected' : '' ?>><?= e(($device['code'] ? $device['code'].' · ' : '').$device['name']) ?></option><?php endforeach ?>
       </select>
     </div>
-    <div class="col-12"><small class="text-secondary" id="googleSheetSyncStatus"><i class="bi bi-clock-history"></i> Dimuat <?= e((string)($sheetData['updated_at'] ?? '-')) ?> · <?= (int)($sheetData['device_count'] ?? 0) ?> alat dibaca · Pembaruan otomatis setiap 30 detik</small></div>
+    <div class="col-sm-4 col-md-3"><label class="form-label mb-1" for="googleSheetRefreshRate">Pembaruan otomatis</label><select class="form-select" id="googleSheetRefreshRate" aria-label="Interval pembaruan data"><option value="5">5 detik (tercepat)</option><option value="10">10 detik</option><option value="15">15 detik</option><option value="30" selected>30 detik</option><option value="60">1 menit</option><option value="120">2 menit</option></select></div>
+    <div class="col-12"><small class="text-secondary" id="googleSheetSyncStatus"><i class="bi bi-clock-history"></i> Dimuat <?= e((string)($sheetData['updated_at'] ?? '-')) ?> · <?= (int)($sheetData['device_count'] ?? 0) ?> alat dibaca · Pembaruan otomatis aktif</small></div>
   </form>
 </div></div>
 <?php foreach ($errors as $error): ?>
