@@ -60,7 +60,14 @@ final class GoogleSheetSensorService
     private function readSheet(array $device): array
     {
         [$spreadsheetId, $gid] = $this->sheetReference((string)$device['google_sheet_url'], (string)($device['google_sheet_gid'] ?? ''));
-        $url = 'https://docs.google.com/spreadsheets/d/'.rawurlencode($spreadsheetId).'/gviz/tq?tqx=out:csv&gid='.rawurlencode($gid).'&range=A1:Z'.(self::MAX_RECENT_ROWS + 10);
+        // Google Visualization menjalankan pengurutan di sisi Google, sehingga aplikasi
+        // hanya menerima 60 pembacaan paling baru walaupun sheet berisi ribuan baris.
+        // Kolom A dan B adalah Tanggal dan Waktu pada format sheet sensor yang dipakai.
+        $query = 'select * order by A desc, B desc limit '.self::MAX_RECENT_ROWS;
+        $url = 'https://docs.google.com/spreadsheets/d/'.rawurlencode($spreadsheetId)
+            .'/gviz/tq?tqx=out:csv&gid='.rawurlencode($gid)
+            .'&tq='.rawurlencode($query)
+            .'&cache_bust='.rawurlencode((string)round(microtime(true) * 1000));
         $csv = $this->download($url);
         $lines = preg_split('/\r\n|\n|\r/', preg_replace('/^\xEF\xBB\xBF/', '', $csv) ?: '') ?: [];
         if (count($lines) < 2) throw new RuntimeException('Sheet belum memiliki baris data yang dapat dibaca.');
