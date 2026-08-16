@@ -123,7 +123,17 @@ final class PublicController
         $averages=[];
         foreach($groups as $parameter=>$group){
             $item=$group['first']; $item['value']=round(array_sum($group['values'])/count($group['values']),2);
-            $item['quality_status']=$group['has_warning']?'warning':'normal'; $averages[$parameter]=$item;
+            // Nilai yang ditampilkan di portal adalah rata-rata 60 pembacaan.
+            // Karena itu status harus dinilai dari nilai rata-rata tersebut, bukan
+            // menjadi WARNING hanya karena satu pembacaan lama pernah menyimpang.
+            $value=(float)$item['value'];
+            $item['quality_status']=match($parameter) {
+                'suhu_air' => $value<=30 ? 'normal' : 'warning',
+                'ph' => $value>=6 && $value<=9 ? 'normal' : 'warning',
+                'tds' => $value<=500 ? 'normal' : 'warning',
+                default => $group['has_warning'] ? 'warning' : 'normal',
+            };
+            $averages[$parameter]=$item;
         }
         return $averages;
     }
