@@ -15,7 +15,7 @@
 <meta name="csrf-token" content="<?=e(csrf_token())?>"><title><?=e($title??'Dashboard')?> — SIMMA</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<link href="<?=url('assets/css/app.css')?>?v=3.7.3" rel="stylesheet"></head>
+<link href="<?=url('assets/css/app.css')?>?v=3.7.4" rel="stylesheet"></head>
 <body><div class="app-shell">
 <aside class="sidebar" id="sidebar"><a class="brand" href="<?=url('dashboard')?>"><span class="brand-mark"><i class="bi bi-droplet-half"></i></span><span class="brand-copy"><strong>SIMMA</strong><small>Monitoring & Manajemen Air</small></span></a>
 <nav class="sidebar-nav"><?php foreach($nav as [$href,$icon,$label]): if(in_array($href,['users','activity-logs','settings'])&&!has_role('super_admin'))continue; if($href==='water-dashboard'):?><small class="nav-section-label">PENGELOLAAN AIR</small><?php endif?><?php if($href==='network-projects'):?><small class="nav-section-label">JARINGAN DISTRIBUSI</small><?php endif?>
@@ -27,5 +27,5 @@
 <div class="user-chip"><span class="avatar"><?=e(strtoupper(substr(user()['name']??'U',0,1)))?></span><span><strong><?=e(user()['name']??'Pengguna')?></strong><small><?=e(str_replace('_',' ',user()['role']??''))?></small></span></div></div></header>
 <main class="content"><?php if($flash):?><div class="alert alert-<?=e($flash['type'])?> alert-dismissible fade show"><i class="bi bi-info-circle me-2"></i><?=e($flash['message'])?><button class="btn-close" data-bs-dismiss="alert"></button></div><?php endif?><?=$content?></main>
 <footer class="app-footer">SIMMA v1.0.0 · Zona waktu Asia/Makassar</footer></div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script src="<?=url('assets/js/app.js')?>?v=3.7.3"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script src="<?=url('assets/js/app.js')?>?v=3.7.4"></script>
 </body></html>

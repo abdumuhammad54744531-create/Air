@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   const sidebarNav=document.querySelector('.sidebar-nav'),sidebarScrollKey='simma-sidebar-scroll-top';
   if(sidebarNav){
     const savedScroll=Number(sessionStorage.getItem(sidebarScrollKey));
-    if(Number.isFinite(savedScroll)&&savedScroll>0)requestAnimationFrame(()=>{sidebarNav.scrollTop=savedScroll});
+    const restoreSidebarScroll=()=>{if(Number.isFinite(savedScroll)&&savedScroll>0)sidebarNav.scrollTop=savedScroll};
+    requestAnimationFrame(restoreSidebarScroll);
+    window.addEventListener('load',()=>setTimeout(restoreSidebarScroll,80),{once:true});
     sidebarNav.addEventListener('scroll',()=>sessionStorage.setItem(sidebarScrollKey,String(sidebarNav.scrollTop)),{passive:true});
     sidebarNav.querySelectorAll('a[href]').forEach(link=>link.addEventListener('click',()=>sessionStorage.setItem(sidebarScrollKey,String(sidebarNav.scrollTop))));
   }
