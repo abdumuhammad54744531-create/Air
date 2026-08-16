@@ -1,4 +1,4 @@
-<?php $rows = $data['rows'] ?? []; $errors = $data['errors'] ?? []; ?>
+<?php $rows = $data['rows'] ?? []; $errors = $data['errors'] ?? []; $selectedDevice = $deviceId ?: 0; ?>
 <section class="page-head">
   <div>
     <p class="eyebrow">Manajemen data</p>
@@ -12,11 +12,24 @@
 </section>
 
 <div class="alert alert-info"><i class="bi bi-info-circle-fill"></i> Sumber pembacaan diatur pada <a href="<?= url('devices') ?>">Data Alat</a>: URL Google Sheet dan GID tab.</div>
+
+<div class="panel mb-3"><div class="p-3 p-md-4">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-md-7 col-lg-5"><label class="form-label mb-1" for="sheetDevice">Pilih Data Alat</label>
+      <select class="form-select" name="device_id" id="sheetDevice" onchange="this.form.submit()">
+        <?php if (!$devices): ?><option value="">Belum ada alat terhubung</option><?php endif ?>
+        <?php foreach ($devices as $device): ?><option value="<?= (int)$device['id'] ?>" <?= $selectedDevice === (int)$device['id'] ? 'selected' : '' ?>><?= e(($device['code'] ? $device['code'].' · ' : '').$device['name']) ?></option><?php endforeach ?>
+      </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Tampilkan Data</button></div>
+    <div class="col-12"><small class="text-secondary" id="googleSheetSyncStatus"><i class="bi bi-clock-history"></i> Dimuat <?= e((string)($data['updated_at'] ?? '-')) ?> · <?= (int)($data['device_count'] ?? 0) ?> alat dibaca</small></div>
+  </form>
+</div></div>
 <?php foreach ($errors as $error): ?>
   <div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i> <?= e(($error['device_name'] ?? 'Google Sheet').': '.($error['message'] ?? 'Tidak dapat dimuat.')) ?></div>
 <?php endforeach ?>
 
-<div class="panel" data-google-sheet-sensors data-endpoint="<?= url('sensors/google-sheet-data') ?>" data-refresh-seconds="30">
+<div class="panel" data-google-sheet-sensors data-endpoint="<?= url('sensors/google-sheet-data') ?>" data-device-id="<?= (int)$selectedDevice ?>" data-refresh-seconds="30">
   <div class="table-toolbar">
     <div><strong>Riwayat pembacaan sensor</strong><p class="mb-0 text-secondary small">Urutan berdasarkan tanggal dan waktu terbaru dari Google Sheet.</p></div>
     <span class="record-count" id="googleSheetRecordCount"><?= count($rows) ?> data ditampilkan</span>

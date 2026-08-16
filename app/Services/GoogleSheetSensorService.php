@@ -27,12 +27,21 @@ final class GoogleSheetSensorService
             ORDER BY l.name")->fetchAll();
     }
 
-    public function readings(?int $locationId = null, int $limit = 300): array
+    public function devices(): array
+    {
+        $this->ensureSchema();
+        return Database::query("SELECT d.id,d.code,d.name,d.google_sheet_name
+            FROM devices d
+            WHERE d.deleted_at IS NULL AND COALESCE(d.google_sheet_url,'')<>''
+            ORDER BY d.name,d.code")->fetchAll();
+    }
+
+    public function readings(?int $deviceId = null, int $limit = 300): array
     {
         $this->ensureSchema();
         $params = [];
         $where = "d.deleted_at IS NULL AND COALESCE(d.google_sheet_url,'')<>''";
-        if ($locationId) { $where .= ' AND d.location_id=?'; $params[] = $locationId; }
+        if ($deviceId) { $where .= ' AND d.id=?'; $params[] = $deviceId; }
         $devices = Database::query("SELECT d.id,d.code,d.name,d.google_sheet_url,d.google_sheet_gid,d.google_sheet_name,l.id location_id,l.code location_code,l.name location_name
             FROM devices d LEFT JOIN locations l ON l.id=d.location_id WHERE {$where} ORDER BY l.name,d.name", $params)->fetchAll();
         $rows = []; $errors = [];

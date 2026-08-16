@@ -59,9 +59,9 @@ final class CrudController
     public function googleSheetData(): void
     {
         require_auth();
-        $locationId = isset($_GET['location_id']) && ctype_digit((string)$_GET['location_id']) ? (int)$_GET['location_id'] : null;
+        $deviceId = isset($_GET['device_id']) && ctype_digit((string)$_GET['device_id']) ? (int)$_GET['device_id'] : null;
         try {
-            json_response((new GoogleSheetSensorService())->readings($locationId));
+            json_response((new GoogleSheetSensorService())->readings($deviceId));
         } catch (\Throwable $e) {
             json_response(['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0], 503);
         }
@@ -70,13 +70,15 @@ final class CrudController
     private function sensorSheetIndex(): void
     {
         $service = new GoogleSheetSensorService();
-        $locationId = isset($_GET['location_id']) && ctype_digit((string)$_GET['location_id']) ? (int)$_GET['location_id'] : null;
+        $devices = $service->devices();
+        $deviceId = isset($_GET['device_id']) && ctype_digit((string)$_GET['device_id']) ? (int)$_GET['device_id'] : null;
+        if (!$deviceId && $devices) $deviceId = (int)$devices[0]['id'];
         try {
-            $data = $service->readings($locationId);
+            $data = $service->readings($deviceId);
         } catch (\Throwable $e) {
             $data = ['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat. Pastikan URL sheet dapat diakses publik.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0];
         }
-        view('water/google-sheet-sensors', compact('data') + ['title'=>'Data Sensor']);
+        view('water/google-sheet-sensors', compact('data', 'devices', 'deviceId') + ['title'=>'Data Sensor']);
     }
 
     private function index(string $module, array $def, ?int $id): void

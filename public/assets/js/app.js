@@ -817,8 +817,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     const refreshGoogleSheet=async()=>{
       try{
-        const endpoint=new URL(googleSheetSensors.dataset.endpoint,window.location.origin),locationId=googleSheetSensors.dataset.locationId;
-        if(locationId&&locationId!=='0')endpoint.searchParams.set('location_id',locationId);
+        const endpoint=new URL(googleSheetSensors.dataset.endpoint,window.location.origin),deviceId=googleSheetSensors.dataset.deviceId;
+        if(deviceId&&deviceId!=='0')endpoint.searchParams.set('device_id',deviceId);
         const response=await fetch(endpoint,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok)throw new Error('Gagal memuat data');
         const payload=await response.json();renderGoogleSheetRows(payload.rows||[]);
         if(recordCount)recordCount.textContent=`${(payload.rows||[]).length} data ditampilkan`;
