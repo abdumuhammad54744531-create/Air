@@ -7,7 +7,7 @@ foreach($qualityParameters as $key=>$label)if(isset($latest[$key])&&$latest[$key
 $fmt=fn($value,$decimals=2)=>number_format((float)$value,$decimals,',','.');
 $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['code'],$location['latitude'],$location['longitude'],$location['updated_at']]),$locations));
 ?>
-<main class="monitor-portal">
+<main class="monitor-portal" data-public-sheet-refresh="30">
 <header class="portal-header">
   <div class="portal-logo"><i class="bi bi-droplet-half"></i></div>
   <div class="portal-title"><h1>SISTEM PEMANTAUAN KUANTITAS DAN KUALITAS<br>SUMBER MATA AIR BERBASIS IoT</h1><p>Dashboard Monitoring Sistem Penyediaan Air Minum (SPAM)</p></div>

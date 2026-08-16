@@ -838,6 +838,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     setInterval(refreshGoogleSheet,Math.max(10,+googleSheetSensors.dataset.refreshSeconds||30)*1000);
   }
+  const publicSheetPortal=document.querySelector('[data-public-sheet-refresh]');
+  if(publicSheetPortal){
+    const refreshSeconds=Math.max(15,+publicSheetPortal.dataset.publicSheetRefresh||30);
+    setInterval(()=>window.location.reload(),refreshSeconds*1000);
+  }
 });
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value??'';return d.innerHTML}
 function formatWaterNumber(value){return new Intl.NumberFormat('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2}).format(+value||0)}
