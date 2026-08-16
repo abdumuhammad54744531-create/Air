@@ -52,13 +52,12 @@ final class PublicController
                 $key=$reading['recorded_at']; $samples[$key] ??= ['recorded_at'=>$key];
                 $samples[$key][$reading['parameter']]=$reading;
             }
-            $daily=[];
-            foreach($readings as $reading) if($reading['parameter']==='debit') {
-                $date=substr($reading['recorded_at'],0,10); $daily[$date] ??=[]; $daily[$date][]=(float)$reading['value'];
-            }
             $trend=[];
-            foreach($daily as $date=>$values)$trend[]=['reading_date'=>$date,'value'=>round(array_sum($values)/count($values),2)];
-            usort($trend,fn($a,$b)=>strcmp($a['reading_date'],$b['reading_date']));
+            foreach(array_reverse(array_slice(array_values($samples),0,24)) as $sample) {
+                $debitReading=$sample['debit']??null;
+                if(!$debitReading) continue;
+                $trend[]=['reading_date'=>substr($sample['recorded_at'],0,10),'label'=>$sample['recorded_at'],'value'=>round((float)$debitReading['value'],2)];
+            }
         }
         $latestTime=$readings[0]['recorded_at']??date('Y-m-d H:i:s');
         view('public/home',['title'=>'Portal Pemantauan Sumber Mata Air','latest'=>$latest,
