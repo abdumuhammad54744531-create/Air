@@ -38,7 +38,7 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
     <div class="summary-item"><span class="hex <?=$quantitySafe?'safe':'unsafe'?>"><i class="bi bi-droplet"></i></span><div><small>KUANTITAS AIR</small><strong><?=$quantitySafe?'AMAN':'TIDAK AMAN'?></strong><p><?=$quantitySafe?'Debit tersedia mencukupi':'Debit belum mencukupi kebutuhan'?></p></div></div>
     <div class="summary-item"><span class="hex <?=$qualitySafe?'safe':'unsafe'?>"><i class="bi bi-shield-check"></i></span><div><small>KUALITAS AIR</small><strong><?=$qualitySafe?'AMAN':'TIDAK AMAN'?></strong><p><?=$qualitySafe?'Semua parameter dalam batas aman':'Ada parameter di luar batas aman'?></p></div></div>
   </article>
-  <article class="portal-card main-indicators"><h2>INDIKATOR UTAMA</h2><div class="indicator-row">
+  <article class="portal-card main-indicators"><h2>INDIKATOR UTAMA <small class="text-secondary fw-normal">(rata-rata maks. 60 data)</small></h2><div class="indicator-row">
     <div class="indicator"><i class="bi bi-water"></i><span>Debit Sumber<br>(Terkini)</span><strong><?=$fmt($debit)?> <small>L/s</small></strong><em class="<?=$quantitySafe?'safe':'unsafe'?>"><?=$quantitySafe?'AMAN':'TIDAK AMAN'?></em></div>
     <div class="indicator"><i class="bi bi-people-fill"></i><span>Kebutuhan Jam Puncak<br>(Tetapan)</span><strong><?=$fmt($fixed['peak_demand'])?> <small>L/s</small></strong><em class="safe">TETAPAN</em></div>
     <div class="indicator"><i class="bi bi-columns-gap"></i><span>Selisih Debit - Kebutuhan</span><strong><?=$fmt($difference)?> <small>L/s</small></strong><em class="<?=$quantitySafe?'safe':'unsafe'?>"><?=$quantitySafe?'AMAN':'KURANG'?></em></div>

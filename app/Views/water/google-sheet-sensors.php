@@ -34,7 +34,7 @@
 
 <div class="panel" data-google-sheet-sensors data-endpoint="<?= url('sensors/google-sheet-data') ?>" data-device-id="<?= $selectedDeviceId ?>" data-refresh-seconds="30">
   <div class="table-toolbar">
-    <div><strong>Riwayat pembacaan sensor</strong><p class="mb-0 text-secondary small">Urutan berdasarkan tanggal dan waktu terbaru dari Google Sheet.</p></div>
+    <div><strong>Riwayat pembacaan sensor</strong><p class="mb-0 text-secondary small">Membaca maksimal 60 baris teratas dari Google Sheet untuk menjaga halaman tetap ringan.</p></div>
     <span class="record-count" id="googleSheetRecordCount"><?= count($rows) ?> data ditampilkan</span>
   </div>
   <div class="table-responsive">

@@ -58,6 +58,7 @@ final class PublicController
                 if(!$debitReading) continue;
                 $trend[]=['reading_date'=>substr($sample['recorded_at'],0,10),'label'=>$sample['recorded_at'],'value'=>round((float)$debitReading['value'],2)];
             }
+            $latest=$this->averageSheetMetrics($readings);
         }
         $latestTime=$readings[0]['recorded_at']??date('Y-m-d H:i:s');
         view('public/home',['title'=>'Portal Pemantauan Sumber Mata Air','latest'=>$latest,
@@ -93,5 +94,22 @@ final class PublicController
         }
         usort($readings,fn($a,$b)=>strcmp($b['recorded_at'],$a['recorded_at']));
         return $readings;
+    }
+
+    private function averageSheetMetrics(array $readings): array
+    {
+        $groups=[];
+        foreach($readings as $reading){
+            $parameter=$reading['parameter'];
+            $groups[$parameter] ??=['first'=>$reading,'values'=>[],'has_warning'=>false];
+            $groups[$parameter]['values'][]=(float)$reading['value'];
+            $groups[$parameter]['has_warning'] = $groups[$parameter]['has_warning'] || $reading['quality_status']!=='normal';
+        }
+        $averages=[];
+        foreach($groups as $parameter=>$group){
+            $item=$group['first']; $item['value']=round(array_sum($group['values'])/count($group['values']),2);
+            $item['quality_status']=$group['has_warning']?'warning':'normal'; $averages[$parameter]=$item;
+        }
+        return $averages;
     }
 }

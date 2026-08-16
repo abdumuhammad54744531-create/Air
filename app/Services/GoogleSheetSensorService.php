@@ -7,6 +7,7 @@ use RuntimeException;
 
 final class GoogleSheetSensorService
 {
+    private const MAX_RECENT_ROWS = 60;
     public function ensureSchema(): void
     {
         $columns = Database::query('SHOW COLUMNS FROM devices')->fetchAll();
@@ -36,7 +37,7 @@ final class GoogleSheetSensorService
             ORDER BY d.name,d.code")->fetchAll();
     }
 
-    public function readings(?int $deviceId = null, int $limit = 300): array
+    public function readings(?int $deviceId = null, int $limit = self::MAX_RECENT_ROWS): array
     {
         $this->ensureSchema();
         $params = [];
@@ -53,13 +54,13 @@ final class GoogleSheetSensorService
             }
         }
         usort($rows, fn(array $a, array $b) => strcmp((string)$b['sort_at'], (string)$a['sort_at']));
-        return ['rows'=>array_slice($rows, 0, max(1, min(1000, $limit))), 'errors'=>$errors, 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>count($devices)];
+        return ['rows'=>array_slice($rows, 0, max(1, min(self::MAX_RECENT_ROWS, $limit))), 'errors'=>$errors, 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>count($devices)];
     }
 
     private function readSheet(array $device): array
     {
         [$spreadsheetId, $gid] = $this->sheetReference((string)$device['google_sheet_url'], (string)($device['google_sheet_gid'] ?? ''));
-        $url = 'https://docs.google.com/spreadsheets/d/'.rawurlencode($spreadsheetId).'/export?format=csv&gid='.rawurlencode($gid);
+        $url = 'https://docs.google.com/spreadsheets/d/'.rawurlencode($spreadsheetId).'/gviz/tq?tqx=out:csv&gid='.rawurlencode($gid).'&range=A1:Z'.(self::MAX_RECENT_ROWS + 10);
         $csv = $this->download($url);
         $lines = preg_split('/\r\n|\n|\r/', preg_replace('/^\xEF\xBB\xBF/', '', $csv) ?: '') ?: [];
         if (count($lines) < 2) throw new RuntimeException('Sheet belum memiliki baris data yang dapat dibaca.');
@@ -89,7 +90,7 @@ final class GoogleSheetSensorService
                 'sort_at'=>$sort,
             ];
         }
-        return $rows;
+        return array_slice($rows, 0, self::MAX_RECENT_ROWS);
     }
 
     private function sheetReference(string $url, string $configuredGid): array
