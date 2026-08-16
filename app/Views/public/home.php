@@ -66,6 +66,7 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
 </section>
 <section class="portal-map-card portal-map-bottom">
   <div class="portal-map-head"><div><h2><i class="bi bi-map-fill"></i> PETA LOKASI MATA AIR</h2><p>Klik titik untuk melihat keterangan · Peta online · Lokasi sinkron otomatis setiap 30 detik</p></div><div class="portal-map-legend"><span><i class="active"></i> Lokasi dipilih</span><span><i></i> Lokasi lainnya</span></div></div>
+  <button type="button" id="publicMapFullscreen" class="public-map-fullscreen"><i class="bi bi-arrows-fullscreen"></i> Layar penuh</button>
   <div id="publicLocationsMap" data-selected="<?=$selectedLocationId?>" data-base-url="<?=e(url('publik'))?>" data-sync-url="<?=e(url('api/v1/public/locations'))?>" data-signature="<?=e($mapSyncSignature)?>" data-locations='<?=e(json_encode($locations))?>'></div>
 </section>
 </main>

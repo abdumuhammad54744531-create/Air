@@ -70,6 +70,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(isActive)marker.openPopup();
     });
     if(markers.length)map.fitBounds(L.featureGroup(markers).getBounds().pad(.25),{maxZoom:13});
+    const fullscreenButton=document.querySelector('#publicMapFullscreen');
+    fullscreenButton?.addEventListener('click',async()=>{
+      try{
+        if(document.fullscreenElement===publicMapElement) await document.exitFullscreen();
+        else await publicMapElement.requestFullscreen();
+      }catch(error){}
+    });
+    document.addEventListener('fullscreenchange',()=>{
+      const active=document.fullscreenElement===publicMapElement;
+      if(fullscreenButton)fullscreenButton.innerHTML=active?'<i class="bi bi-fullscreen-exit"></i> Keluar layar penuh':'<i class="bi bi-arrows-fullscreen"></i> Layar penuh';
+      setTimeout(()=>map.invalidateSize(),100);
+    });
     setInterval(async()=>{
       try{
         const response=await fetch(publicMapElement.dataset.syncUrl,{cache:'no-store',headers:{Accept:'application/json'}});
