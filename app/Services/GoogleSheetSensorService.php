@@ -54,7 +54,15 @@ final class GoogleSheetSensorService
         $csv = $this->download($url);
         $lines = preg_split('/\r\n|\n|\r/', preg_replace('/^\xEF\xBB\xBF/', '', $csv) ?: '') ?: [];
         if (count($lines) < 2) throw new RuntimeException('Sheet belum memiliki baris data yang dapat dibaca.');
-        $headers = array_map(fn($v) => $this->headerKey((string)$v), str_getcsv((string)array_shift($lines), ',', '"', '\\') ?: []);
+        $headerLine = null;
+        foreach ($lines as $lineIndex => $line) {
+            if ($lineIndex > 40) break;
+            $candidate = array_map(fn($v) => $this->headerKey((string)$v), str_getcsv($line, ',', '"', '\\') ?: []);
+            $recognised = count(array_intersect($candidate, ['date','time','temperature','ph','tds','velocity','water_level']));
+            if ($recognised >= 2) { $headers = $candidate; $headerLine = $lineIndex; break; }
+        }
+        if ($headerLine === null) throw new RuntimeException('Header sheet tidak dikenali. Gunakan kolom Suhu, pH, TDS, Kecepatan, atau Tinggi Air.');
+        $lines = array_slice($lines, $headerLine + 1);
         $rows = [];
         foreach ($lines as $line) {
             if (trim($line) === '') continue;
@@ -109,8 +117,8 @@ final class GoogleSheetSensorService
             str_contains($value, 'suhu') || str_contains($value, 'temperature') => 'temperature',
             $value === 'ph' || str_contains($value, 'derajat keasaman') => 'ph',
             str_contains($value, 'tds') => 'tds',
-            str_contains($value, 'kecepatan') || str_contains($value, 'velocity') => 'velocity',
-            str_contains($value, 'tinggi air') || str_contains($value, 'muka air') || str_contains($value, 'water level') => 'water_level',
+            str_contains($value, 'kecepatan') || str_contains($value, 'velocity') || preg_match('/^v\s*\(/', $value) === 1 => 'velocity',
+            str_contains($value, 'tinggi air') || str_contains($value, 'muka air') || str_contains($value, 'water level') || preg_match('/^h\s*\(/', $value) === 1 => 'water_level',
             default => preg_replace('/[^a-z0-9]+/', '_', $value) ?: '',
         };
     }
