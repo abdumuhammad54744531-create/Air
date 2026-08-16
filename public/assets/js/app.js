@@ -1,6 +1,13 @@
 document.addEventListener('DOMContentLoaded',()=>{
   const sidebar=document.querySelector('#sidebar');
   document.querySelector('#sidebarToggle')?.addEventListener('click',()=>sidebar?.classList.toggle('open'));
+  const sidebarNav=document.querySelector('.sidebar-nav'),sidebarScrollKey='simma-sidebar-scroll-top';
+  if(sidebarNav){
+    const savedScroll=Number(sessionStorage.getItem(sidebarScrollKey));
+    if(Number.isFinite(savedScroll)&&savedScroll>0)requestAnimationFrame(()=>{sidebarNav.scrollTop=savedScroll});
+    sidebarNav.addEventListener('scroll',()=>sessionStorage.setItem(sidebarScrollKey,String(sidebarNav.scrollTop)),{passive:true});
+    sidebarNav.querySelectorAll('a[href]').forEach(link=>link.addEventListener('click',()=>sessionStorage.setItem(sidebarScrollKey,String(sidebarNav.scrollTop))));
+  }
   document.querySelectorAll('[data-toggle-password]').forEach(btn=>btn.addEventListener('click',()=>{
     const input=document.querySelector(btn.dataset.togglePassword); if(!input)return;
     input.type=input.type==='password'?'text':'password';
