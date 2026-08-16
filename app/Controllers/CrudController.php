@@ -76,11 +76,11 @@ final class CrudController
         $selectedDevice = null;
         foreach ($devices as $device) if ((int)$device['id'] === $deviceId) { $selectedDevice = $device; break; }
         try {
-            $data = $service->readings($deviceId);
+            $sheetData = $service->readings($deviceId);
         } catch (\Throwable $e) {
-            $data = ['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat. Pastikan URL sheet dapat diakses publik.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0];
+            $sheetData = ['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat. Pastikan URL sheet dapat diakses publik.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0];
         }
-        view('water/google-sheet-sensors', compact('data', 'devices', 'deviceId', 'selectedDevice') + ['title'=>'Data Sensor']);
+        view('water/google-sheet-sensors', compact('sheetData', 'devices', 'deviceId', 'selectedDevice') + ['title'=>'Data Sensor']);
     }
 
     private function index(string $module, array $def, ?int $id): void

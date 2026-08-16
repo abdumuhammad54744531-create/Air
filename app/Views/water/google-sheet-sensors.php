@@ -1,4 +1,4 @@
-<?php $rows = $data['rows'] ?? []; $errors = $data['errors'] ?? []; $selectedDeviceId = (int)($deviceId ?? 0); ?>
+<?php $rows = $sheetData['rows'] ?? []; $errors = $sheetData['errors'] ?? []; $selectedDeviceId = (int)($deviceId ?? 0); ?>
 <section class="page-head">
   <div>
     <p class="eyebrow">Manajemen data</p>
@@ -22,7 +22,7 @@
       </select>
     </div>
     <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Tampilkan Data</button></div>
-    <div class="col-12"><small class="text-secondary" id="googleSheetSyncStatus"><i class="bi bi-clock-history"></i> Dimuat <?= e((string)($data['updated_at'] ?? '-')) ?> · <?= (int)($data['device_count'] ?? 0) ?> alat dibaca</small></div>
+    <div class="col-12"><small class="text-secondary" id="googleSheetSyncStatus"><i class="bi bi-clock-history"></i> Dimuat <?= e((string)($sheetData['updated_at'] ?? '-')) ?> · <?= (int)($sheetData['device_count'] ?? 0) ?> alat dibaca</small></div>
   </form>
 </div></div>
 <?php foreach ($errors as $error): ?>
