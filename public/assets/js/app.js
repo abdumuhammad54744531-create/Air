@@ -807,11 +807,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(!tableRows)return;
       tableRows.replaceChildren();
       if(!rows.length){
-        const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=11;td.className='text-center text-secondary py-4';td.textContent='Belum ada data sensor dari Google Sheet untuk lokasi ini.';tr.append(td);tableRows.append(tr);return;
+        const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.className='text-center text-secondary py-4';td.textContent='Belum ada data sensor dari Google Sheet.';tr.append(td);tableRows.append(tr);return;
       }
       rows.forEach((row,index)=>{
         const tr=document.createElement('tr');
-        [index+1,row.date,row.time,row.location_name,row.device_name,row.temperature,row.ph,row.tds,row.velocity,row.water_level,row.sheet_name].forEach(value=>{const td=document.createElement('td');td.textContent=showValue(value);tr.append(td)});
+        [index+1,row.date,row.time,row.temperature,row.ph,row.tds,row.velocity,row.water_level].forEach(value=>{const td=document.createElement('td');td.textContent=showValue(value);tr.append(td)});
         tableRows.append(tr);
       });
     };

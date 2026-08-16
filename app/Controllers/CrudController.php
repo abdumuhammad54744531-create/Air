@@ -76,8 +76,7 @@ final class CrudController
         } catch (\Throwable $e) {
             $data = ['rows'=>[], 'errors'=>[['message'=>'Data Google Sheet belum dapat dimuat. Pastikan URL sheet dapat diakses publik.']], 'updated_at'=>date('Y-m-d H:i:s'), 'device_count'=>0];
         }
-        $locations = $service->locations();
-        view('water/google-sheet-sensors', compact('data', 'locations', 'locationId') + ['title'=>'Data Sensor']);
+        view('water/google-sheet-sensors', compact('data') + ['title'=>'Data Sensor']);
     }
 
     private function index(string $module, array $def, ?int $id): void
