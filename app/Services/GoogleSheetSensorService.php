@@ -30,9 +30,9 @@ final class GoogleSheetSensorService
     public function devices(): array
     {
         $this->ensureSchema();
-        return Database::query("SELECT d.id,d.code,d.name,d.google_sheet_name
+        return Database::query("SELECT d.id,d.code,d.name,d.google_sheet_name,d.google_sheet_url
             FROM devices d
-            WHERE d.deleted_at IS NULL AND COALESCE(d.google_sheet_url,'')<>''
+            WHERE d.deleted_at IS NULL
             ORDER BY d.name,d.code")->fetchAll();
     }
 

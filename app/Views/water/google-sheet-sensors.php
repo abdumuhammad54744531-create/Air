@@ -28,6 +28,9 @@
 <?php foreach ($errors as $error): ?>
   <div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i> <?= e(($error['device_name'] ?? 'Google Sheet').': '.($error['message'] ?? 'Tidak dapat dimuat.')) ?></div>
 <?php endforeach ?>
+<?php if ($selectedDevice && empty($selectedDevice['google_sheet_url'])): ?>
+  <div class="alert alert-warning"><i class="bi bi-link-45deg"></i> Alat <strong><?= e($selectedDevice['code'].' · '.$selectedDevice['name']) ?></strong> belum dihubungkan ke URL Google Sheet. Isi URL dan GID-nya pada Data Alat terlebih dahulu.</div>
+<?php endif ?>
 
 <div class="panel" data-google-sheet-sensors data-endpoint="<?= url('sensors/google-sheet-data') ?>" data-device-id="<?= (int)$selectedDevice ?>" data-refresh-seconds="30">
   <div class="table-toolbar">
