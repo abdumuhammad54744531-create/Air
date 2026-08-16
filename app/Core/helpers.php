@@ -23,9 +23,21 @@ function csrf_token(): string {
 }
 function csrf_field(): string { return '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">'; }
 function verify_csrf(): void {
-    if (!hash_equals($_SESSION['csrf'] ?? '', $_POST['_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) {
-        http_response_code(419); exit('Sesi formulir kedaluwarsa. Silakan muat ulang halaman.');
-    }
+    $sessionToken = (string) ($_SESSION['csrf'] ?? '');
+    $submittedToken = (string) ($_POST['_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+    if ($sessionToken !== '' && $submittedToken !== '' && hash_equals($sessionToken, $submittedToken)) return;
+
+    unset($_SESSION['csrf']);
+    $message = 'Sesi formulir kedaluwarsa. Silakan muat ulang halaman lalu coba kembali.';
+    $accept = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+    if (str_contains($accept, 'application/json')) json_response(['success' => false, 'message' => $message], 419);
+
+    flash('warning', $message);
+    $fallback = user() ? url('dashboard') : url('login');
+    $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+    if ($referer !== '' && str_starts_with($referer, app_url_base())) $fallback = $referer;
+    header('Location: ' . $fallback, true, 303);
+    exit;
 }
 function user(): ?array { return $_SESSION['user'] ?? null; }
 function has_role(array|string $roles): bool { return user() && in_array(user()['role'], (array)$roles, true); }

@@ -16,10 +16,13 @@ final class App
             $sessionPath = self::ROOT . '/storage/sessions';
             if (!is_dir($sessionPath)) mkdir($sessionPath, 0775, true);
             session_save_path($sessionPath);
-            session_name('monitoring_air_session');
+            // Nama baru mencegah cookie sesi lama dari versi sebelumnya dipakai
+            // kembali ketika aplikasi dibuka melalui localhost maupun domain.
+            session_name('simma_session_v2');
             $forwardedProto = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
             $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
-            session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => $isHttps]);
+            ini_set('session.use_strict_mode', '1');
+            session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => $isHttps]);
             session_start();
         }
         $timeout = (int) Env::get('SESSION_TIMEOUT_MINUTES', 120) * 60;
