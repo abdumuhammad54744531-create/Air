@@ -3,9 +3,18 @@ use App\Core\Database;
 use App\Core\Env;
 
 function e(mixed $value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+function app_url_base(): string {
+    $configured = trim((string) Env::get('APP_URL', ''));
+    if ($configured !== '') return rtrim($configured, '/');
+    $forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    $scheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https') ? 'https' : 'http';
+    $host = preg_replace('/[^A-Za-z0-9.:-]/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost')) ?: 'localhost';
+    $basePath = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
+    $basePath = preg_replace('#/public$#', '', rtrim($basePath, '/')) ?: '';
+    return $scheme . '://' . $host . $basePath;
+}
 function url(string $path = ''): string {
-    $base = rtrim((string)Env::get('APP_URL', 'http://localhost/aplikasi-web-air/public'), '/');
-    return $base . '/' . ltrim($path, '/');
+    return app_url_base() . '/' . ltrim($path, '/');
 }
 function redirect(string $path): never { header('Location: ' . url($path)); exit; }
 function csrf_token(): string {

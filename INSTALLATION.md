@@ -16,5 +16,4 @@ C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysql.exe -u root monitoring_air < d
 
 Sesuaikan `APP_URL` apabila aplikasi dibuka melalui `http://localhost/aplikasi-web-air/public`.
 
-Untuk produksi, gunakan `APP_ENV=production`, `APP_DEBUG=false`, ganti seluruh API key demo, ganti kata sandi awal, aktifkan HTTPS, dan batasi izin tulis hanya pada `storage`.
-
+Untuk produksi, gunakan `APP_ENV=production`, `APP_DEBUG=false`, ganti seluruh API key demo, ganti kata sandi awal, aktifkan HTTPS, dan batasi izin tulis hanya pada `storage`. Panduan lengkap deploy domain tersedia pada [DEPLOYMENT_HOSTINGER.md](DEPLOYMENT_HOSTINGER.md).

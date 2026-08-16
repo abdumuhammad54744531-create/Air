@@ -23,7 +23,7 @@ Modul **Desain Otomatis Pipa dan Reservoir** memakai jaringan proyek yang sama u
 
 Untuk basis data lama, buka menu **Jaringan Distribusi → Desain Otomatis** setelah memperbarui berkas aplikasi. Tabel modul dan master diameter akan dibuat satu kali secara aman. Migrasi manual tetap tersedia melalui `php database/migrations/20260806_automatic_design.php`.
 
-Alternatif manual dijelaskan di [INSTALLATION.md](INSTALLATION.md).
+Alternatif manual dijelaskan di [INSTALLATION.md](INSTALLATION.md). Untuk domain/Hostinger, gunakan panduan [DEPLOYMENT_HOSTINGER.md](DEPLOYMENT_HOSTINGER.md).
 
 ## Struktur folder
 

@@ -1,5 +1,16 @@
+Options -Indexes
 RewriteEngine On
+
+# Lindungi file konfigurasi dan kode ketika panel hosting mengarah ke folder proyek.
+RewriteRule ^(?:\.env|\.git|app|database|storage|tests|tools)(?:/|$) - [F,L,NC]
+
+# Jika document root belum dapat diarahkan ke /public, layani aset dari sana.
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f [OR]
+RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -d
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Seluruh route aplikasi masuk ke front controller.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ public/index.php [QSA,L]
-

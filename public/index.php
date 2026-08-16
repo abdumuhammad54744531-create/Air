@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use App\Core\App;
 use App\Core\Database;
+use App\Core\Env;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\CrudController;
@@ -30,6 +31,9 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if (!is_file(App::ROOT . '/storage/installed.lock') && !str_starts_with($path, 'install')) {
     header('Location: ' . url('install')); exit;
+}
+if ($path === 'install' && is_file(App::ROOT . '/storage/installed.lock') && !Env::get('APP_ALLOW_REINSTALL', false)) {
+    header('Location: ' . url('login')); exit;
 }
 
 try {
