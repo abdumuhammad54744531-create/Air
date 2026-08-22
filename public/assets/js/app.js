@@ -907,6 +907,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(refreshRateSelect){refreshRateSelect.value=String(refreshSeconds());refreshRateSelect.addEventListener('change',()=>{localStorage.setItem(refreshRateKey,refreshRateSelect.value);schedulePublicRefresh();checkPublicSheet()})}
     schedulePublicRefresh();
   }
+  const savePublicDashboardJpg=document.querySelector('#savePublicDashboardJpg');
+  savePublicDashboardJpg?.addEventListener('click',async()=>{
+    if(!window.html2canvas)return;
+    const dashboard=document.querySelector('.monitor-portal');if(!dashboard)return;
+    const original=savePublicDashboardJpg.innerHTML;
+    savePublicDashboardJpg.disabled=true;savePublicDashboardJpg.innerHTML='<span class="spinner-border spinner-border-sm"></span> Menyiapkan JPG…';
+    try{
+      if(document.fonts?.ready)await document.fonts.ready;
+      const scale=Math.min(2,Math.max(1,3840/dashboard.scrollWidth));
+      const canvas=await window.html2canvas(dashboard,{backgroundColor:'#eff8f2',scale,useCORS:true,logging:false,windowWidth:dashboard.scrollWidth,windowHeight:dashboard.scrollHeight,ignoreElements:element=>element.classList?.contains('no-export')});
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.95));
+      if(!blob)throw new Error('JPG tidak dapat dibuat');
+      const name=(savePublicDashboardJpg.dataset.locationName||'monitoring-air').toLowerCase().replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'');
+      const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`dashboard-${name}-${new Date().toISOString().slice(0,10)}.jpg`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+    }catch(error){alert('Gagal membuat JPG. Pastikan koneksi peta tersedia lalu coba lagi.');}
+    finally{savePublicDashboardJpg.disabled=false;savePublicDashboardJpg.innerHTML=original;}
+  });
 });
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value??'';return d.innerHTML}
 function formatWaterNumber(value){return new Intl.NumberFormat('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2}).format(+value||0)}

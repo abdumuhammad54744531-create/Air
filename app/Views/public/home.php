@@ -32,6 +32,7 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
 <?php if($devices):?><section class="portal-devices">
   <?php foreach($devices as $device):?><article><i class="bi bi-router-fill"></i><span><b><?=e($device['name'])?></b><small><?=e($device['code'])?> · <?=e($device['type'])?></small></span><em class="<?=($device['connection_status']==='online')?'online':'offline'?>"><i></i><?=e(ucwords(str_replace('_',' ',$device['connection_status'])))?></em></article><?php endforeach?>
 </section><?php else:?><div class="portal-empty"><i class="bi bi-router"></i> Belum ada alat yang diizinkan tampil pada lokasi ini.</div><?php endif?>
+<section class="portal-export-bar no-export"><span><i class="bi bi-image"></i> Simpan tampilan dashboard lokasi ini sebagai gambar JPG berkualitas tinggi.</span><button type="button" id="savePublicDashboardJpg" class="btn btn-success btn-sm" data-location-name="<?=e($selectedLocation['name']??'monitoring-air')?>"><i class="bi bi-download"></i> Simpan JPG Resolusi Tinggi</button></section>
 
 <section class="portal-top-grid">
   <article class="portal-card status-summary"><h2>RINGKASAN STATUS</h2>
