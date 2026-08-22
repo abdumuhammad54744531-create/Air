@@ -48,7 +48,6 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
 </section>
 
 <section class="portal-middle-grid">
-  <article class="portal-card fixed-parameters"><h2>PARAMETER TETAP</h2><div class="fixed-line"><span>Lebar Mata Air (B)</span><b><?=$fmt($fixed['source_width'])?> <small>m</small></b></div><div class="fixed-line"><span>Kebutuhan Jam Puncak (Q<sub>req</sub>)</span><b><?=$fmt($fixed['peak_demand'])?> <small>L/s</small></b></div><div class="formula"><h3>RUMUS DEBIT</h3><strong>Q = V × A<br>A = B × H</strong><p>Q = Debit (m³/s)<br>V = Kecepatan aliran (m/s)<br>A = Luas penampang basah (m²)<br>B = Lebar mata air (m)<br>H = Tinggi air (m)</p></div></article>
   <article class="portal-card trend-card"><h2>TREND DEBIT SUMBER MATA AIR</h2><div class="trend-legend"><b>L/s</b><span><i></i> Debit (L/s)</span><span><i class="req"></i> Kebutuhan Jam Puncak</span></div><div class="portal-chart"><canvas id="portalDebitChart" data-trend='<?=e(json_encode($trend))?>' data-demand="<?=$fixed['peak_demand']?>"></canvas></div></article>
   <article class="portal-card quality-card"><h2>STATUS PARAMETER KUALITAS AIR (TERKINI)</h2><div class="table-responsive"><table><thead><tr><th>Parameter</th><th>Nilai</th><th>Baku Mutu*</th><th>Status</th></tr></thead><tbody>
   <?php $standards=['suhu_air'=>'≤ 30 °C','ph'=>'6 – 9','tds'=>'≤ 500 mg/L','kekeruhan'=>'≤ 25 NTU','oksigen_terlarut'=>'≥ 4 mg/L']; foreach($qualityParameters as $key=>$label):if(!isset($latest[$key]))continue;$r=$latest[$key];?>

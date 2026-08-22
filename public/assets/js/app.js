@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(portalChart&&window.Chart){
     const rows=JSON.parse(portalChart.dataset.trend||'[]'),demand=+portalChart.dataset.demand;
     new Chart(portalChart,{type:'line',data:{labels:rows.map(r=>r.label?new Date(r.label.replace(' ','T')).toLocaleString('id-ID',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):new Date(r.reading_date+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit'})),datasets:[
-      {label:'Debit (L/s)',data:rows.map(r=>+r.value),borderColor:'#063c9b',backgroundColor:'#063c9b',pointRadius:4,pointBorderWidth:2,pointBorderColor:'#fff',tension:.2},
+      {label:'Debit (L/s)',data:rows.map(r=>+r.value),borderColor:'#087f4d',backgroundColor:'#087f4d',pointRadius:4,pointBorderWidth:2,pointBorderColor:'#fff',tension:.2},
       {label:'Kebutuhan Jam Puncak',data:rows.map(()=>demand),borderColor:'#ef2020',borderDash:[7,5],pointRadius:0,borderWidth:2}
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#0a1833'}},y:{suggestedMin:0,grid:{color:'#dce5ef'},ticks:{color:'#0a1833'}}}}});
   }
