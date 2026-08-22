@@ -83,7 +83,7 @@ final class ApiController
 
     private function publicEndpoint(string $endpoint): never
     {
-        if ($endpoint==='public/locations') $data=Database::query("SELECT code,name,type,city,latitude,longitude,updated_at FROM locations WHERE is_public=1 AND is_active=1 AND deleted_at IS NULL ORDER BY name")->fetchAll();
+        if ($endpoint==='public/locations') $data=Database::query("SELECT code,name,type,city,latitude,longitude,photo,updated_at FROM locations WHERE is_public=1 AND is_active=1 AND deleted_at IS NULL ORDER BY name")->fetchAll();
         elseif ($endpoint==='public/latest') $data=Database::query("SELECT l.name location,d.name device,s.name sensor,s.parameter,s.unit,sr.calibrated_value value,sr.quality_status,sr.recorded_at FROM sensor_readings sr JOIN sensors s ON s.id=sr.sensor_id JOIN devices d ON d.id=sr.device_id JOIN locations l ON l.id=d.location_id WHERE l.is_public=1 AND d.is_public=1 AND s.is_public=1 ORDER BY sr.recorded_at DESC LIMIT 50")->fetchAll();
         else $data=Database::query("SELECT s.parameter,s.unit,sr.calibrated_value value,sr.quality_status,sr.recorded_at FROM sensor_readings sr JOIN sensors s ON s.id=sr.sensor_id WHERE s.is_public=1 AND sr.recorded_at>=DATE_SUB(NOW(),INTERVAL 7 DAY) ORDER BY sr.recorded_at DESC LIMIT 500")->fetchAll();
         json_response(['success'=>true,'data'=>$data,'server_time'=>date('Y-m-d H:i:s')]);

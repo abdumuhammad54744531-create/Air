@@ -7,7 +7,7 @@ use App\Services\GoogleSheetSensorService;
 final class CrudController
 {
     private array $definitions = [
-        'locations'=>['table'=>'locations','title'=>'Data Lokasi','fields'=>['code'=>'Kode Lokasi','name'=>'Nama Lokasi','type'=>'Jenis Lokasi','province'=>'Provinsi','city'=>'Kabupaten/Kota','district'=>'Kecamatan','village'=>'Desa/Kelurahan','address'=>'Alamat','latitude'=>'Latitude','longitude'=>'Longitude','elevation'=>'Ketinggian (m)','person_in_charge'=>'Penanggung Jawab','phone'=>'Nomor Telepon','email'=>'Email','description'=>'Deskripsi','is_active'=>'Status Aktif','is_public'=>'Tampil Publik']],
+        'locations'=>['table'=>'locations','title'=>'Data Lokasi','fields'=>['code'=>'Kode Lokasi','name'=>'Nama Lokasi','type'=>'Jenis Lokasi','province'=>'Provinsi','city'=>'Kabupaten/Kota','district'=>'Kecamatan','village'=>'Desa/Kelurahan','address'=>'Alamat','latitude'=>'Latitude','longitude'=>'Longitude','elevation'=>'Ketinggian (m)','person_in_charge'=>'Penanggung Jawab','phone'=>'Nomor Telepon','email'=>'Email','photo'=>'Foto Dokumentasi','description'=>'Deskripsi','is_active'=>'Status Aktif','is_public'=>'Tampil Publik']],
         'devices'=>['table'=>'devices','title'=>'Data Alat','fields'=>['code'=>'Kode Alat','name'=>'Nama Alat','serial_number'=>'Nomor Seri','brand'=>'Merek','model'=>'Model','type'=>'Jenis Alat','location_id'=>'Lokasi Sumber Air','google_sheet_url'=>'URL Google Sheet Data Sensor','google_sheet_gid'=>'ID Tab / GID Sheet','google_sheet_name'=>'Nama Tab Sheet','installed_at'=>'Tanggal Pemasangan','power_source'=>'Sumber Daya','communication_type'=>'Komunikasi','send_interval_seconds'=>'Interval Kirim (detik)','firmware_version'=>'Firmware','status'=>'Status','is_public'=>'Tampil Publik']],
         'sensors'=>['table'=>'sensors','title'=>'Data Sensor','fields'=>['code'=>'Kode Sensor','name'=>'Nama Sensor','device_id'=>'Alat','parameter'=>'Parameter','unit'=>'Satuan','normal_min'=>'Normal Min','normal_max'=>'Normal Maks','warning_min'=>'Waspada Min','warning_max'=>'Waspada Maks','danger_min'=>'Bahaya Min','danger_max'=>'Bahaya Maks','calibration_factor'=>'Faktor Kalibrasi','offset_value'=>'Offset','decimal_places'=>'Desimal','status'=>'Status','is_public'=>'Tampil Publik','chart_color'=>'Warna Grafik']],
         'monitoring'=>['table'=>'sensor_readings','title'=>'Monitoring Data','readonly'=>true,'fields'=>[]],
@@ -113,6 +113,19 @@ final class CrudController
             if (in_array($field,['is_active','is_public','show_on_home'],true)) $data[$field] = isset($_POST[$field]) ? 1 : 0;
             elseif (array_key_exists($field,$_POST)) $data[$field] = trim((string)$_POST[$field]) === '' ? null : trim((string)$_POST[$field]);
         }
+        if ($module === 'locations' && isset($_FILES['photo']) && (int)($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $upload = $_FILES['photo'];
+            if ((int)$upload['error'] !== UPLOAD_ERR_OK || !is_uploaded_file((string)$upload['tmp_name'])) { flash('danger','Foto dokumentasi gagal diunggah.'); redirect($module . ($id ? '/' . $id : '')); }
+            if ((int)$upload['size'] > 5 * 1024 * 1024) { flash('danger','Ukuran foto maksimal 5 MB.'); redirect($module . ($id ? '/' . $id : '')); }
+            $mime = (new \finfo(FILEINFO_MIME_TYPE))->file((string)$upload['tmp_name']);
+            $extensions = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
+            if (!isset($extensions[$mime])) { flash('danger','Foto harus berformat JPG, PNG, atau WEBP.'); redirect($module . ($id ? '/' . $id : '')); }
+            $directory = \App\Core\App::ROOT . '/public/uploads/locations';
+            if (!is_dir($directory)) mkdir($directory, 0775, true);
+            $filename = 'location-'.date('YmdHis').'-'.bin2hex(random_bytes(4)).'.'.$extensions[$mime];
+            if (!move_uploaded_file((string)$upload['tmp_name'], $directory.'/'.$filename)) { flash('danger','Foto dokumentasi tidak dapat disimpan.'); redirect($module . ($id ? '/' . $id : '')); }
+            $data['photo'] = 'uploads/locations/'.$filename;
+        } elseif ($module === 'locations' && $id) unset($data['photo']);
         foreach ($def['required'] ?? [] as $field) {
             if (!array_key_exists($field,$data) || $data[$field] === null || $data[$field] === '') {
                 flash('danger','Kolom ' . ($def['fields'][$field] ?? $field) . ' wajib diisi.');

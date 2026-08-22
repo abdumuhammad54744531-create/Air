@@ -59,11 +59,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       const href=`${publicMapElement.dataset.baseUrl}?location=${encodeURIComponent(item.id)}`;
       const region=[item.village,item.district,item.city,item.province].filter(Boolean).map(escapeHtml).join(', ');
       const updated=item.last_update?new Date(item.last_update.replace(' ','T')).toLocaleString('id-ID'):'Belum ada data';
+      const photoUrl=item.photo?encodeURI(String(item.photo)).replaceAll('"','%22'):'';
+      const photo=photoUrl?`<button type="button" class="public-location-photo" data-location-photo="${photoUrl}" aria-label="Perbesar foto dokumentasi ${escapeHtml(item.name)}"><img src="${photoUrl}" alt="Dokumentasi ${escapeHtml(item.name)}"><span><i class="bi bi-arrows-fullscreen"></i> Perbesar foto</span></button>`:'';
       const details=`<div class="public-map-popup"><h3>${escapeHtml(item.name)}</h3><span class="popup-code">${escapeHtml(item.code)} · ${escapeHtml(item.type)}</span>
         <dl><dt>Wilayah</dt><dd>${region||'—'}</dd><dt>Alamat</dt><dd>${escapeHtml(item.address||'—')}</dd><dt>Koordinat</dt><dd>${escapeHtml(item.latitude)}, ${escapeHtml(item.longitude)}</dd>
         <dt>Elevasi</dt><dd>${item.elevation?escapeHtml(item.elevation)+' meter':'—'}</dd><dt>Perangkat</dt><dd>${item.device_count} alat (${item.online_devices||0} online)</dd>
         <dt>Nama alat</dt><dd>${escapeHtml(item.device_names||'Belum ada alat publik')}</dd><dt>Pembaruan</dt><dd>${escapeHtml(updated)}</dd></dl>
-        ${item.description?`<p>${escapeHtml(item.description)}</p>`:''}<a href="${href}">Tampilkan data lokasi ini</a></div>`;
+        ${item.description?`<p>${escapeHtml(item.description)}</p>`:''}${photo}<a href="${href}">Tampilkan data lokasi ini</a></div>`;
       const marker=L.marker([+item.latitude,+item.longitude],{icon,zIndexOffset:isActive?1000:0}).addTo(map)
         .bindPopup(details,{maxWidth:380,minWidth:280});
       marker.on('click',()=>{if(isActive)marker.openPopup()});markers.push(marker);
@@ -86,11 +88,23 @@ document.addEventListener('DOMContentLoaded',()=>{
       try{
         const response=await fetch(publicMapElement.dataset.syncUrl,{cache:'no-store',headers:{Accept:'application/json'}});
         const payload=await response.json(); if(!payload.success)return;
-        const signature=payload.data.map(item=>[item.code,item.latitude,item.longitude,item.updated_at].join(':')).join('|');
+        const signature=payload.data.map(item=>[item.code,item.latitude,item.longitude,item.photo||'',item.updated_at].join(':')).join('|');
         if(signature!==publicMapElement.dataset.signature)window.location.reload();
       }catch(error){}
     },30000);
   }
+  document.addEventListener('click',event=>{
+    const button=event.target.closest('[data-location-photo]');if(!button)return;
+    const photo=button.dataset.locationPhoto;if(!photo)return;
+    const overlay=document.createElement('div');overlay.className='public-photo-lightbox';
+    overlay.innerHTML=`<button type="button" class="public-photo-close" aria-label="Tutup foto"><i class="bi bi-x-lg"></i></button><img src="${photo}" alt="Foto dokumentasi lokasi">`;
+    const close=()=>{if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});overlay.remove()};
+    overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('.public-photo-close'))close()});
+    document.body.append(overlay);
+    const image=overlay.querySelector('img');
+    image?.requestFullscreen?.().catch(()=>{});
+    document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.contains(overlay))overlay.remove()},{once:true});
+  });
   document.querySelectorAll('[data-export-table]').forEach(btn=>btn.addEventListener('click',()=>{
     const table=document.querySelector(btn.dataset.exportTable);if(!table)return;
     const csv=[...table.rows].map(row=>[...row.cells].slice(0,-1).map(cell=>`"${cell.innerText.trim().replaceAll('"','""')}"`).join(',')).join('\n');

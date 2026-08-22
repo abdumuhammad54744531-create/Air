@@ -24,13 +24,13 @@ final class PublicController
     public function home(): void
     {
         $locations=Database::query("SELECT l.id,l.code,l.name,l.type,l.province,l.city,l.district,l.village,l.address,
-            l.latitude,l.longitude,l.elevation,l.description,l.updated_at,COUNT(d.id) device_count,
+            l.latitude,l.longitude,l.elevation,l.photo,l.description,l.updated_at,COUNT(d.id) device_count,
             SUM(CASE WHEN d.connection_status='online' THEN 1 ELSE 0 END) online_devices,
             GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') device_names,MAX(d.last_data_at) last_update
             FROM locations l LEFT JOIN devices d ON d.location_id=l.id AND d.is_public=1 AND d.deleted_at IS NULL
             WHERE l.is_public=1 AND l.is_active=1 AND l.deleted_at IS NULL
             GROUP BY l.id,l.code,l.name,l.type,l.province,l.city,l.district,l.village,l.address,
-            l.latitude,l.longitude,l.elevation,l.description,l.updated_at ORDER BY l.name")->fetchAll();
+            l.latitude,l.longitude,l.elevation,l.photo,l.description,l.updated_at ORDER BY l.name")->fetchAll();
         $requestedLocation=(int)($_GET['location']??0);
         $allowedIds=array_map('intval',array_column($locations,'id'));
         $selectedLocationId=in_array($requestedLocation,$allowedIds,true)?$requestedLocation:($allowedIds[0]??0);
