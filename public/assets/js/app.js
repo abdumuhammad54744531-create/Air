@@ -108,14 +108,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     const button=event.target.closest('[data-location-photo]');if(!button)return;
     const photo=button.dataset.locationPhoto;if(!photo)return;
+    let photos=[photo],index=Number(button.dataset.photoIndex||0);
+    try{const parsed=JSON.parse(decodeURIComponent(button.dataset.photos||''));if(Array.isArray(parsed)&&parsed.length){photos=parsed;index=Math.max(0,Math.min(index,photos.length-1));}}catch(error){}
     const overlay=document.createElement('div');overlay.className='public-photo-lightbox';
-    overlay.innerHTML=`<button type="button" class="public-photo-close" aria-label="Tutup foto"><i class="bi bi-x-lg"></i></button><img src="${photo}" alt="Foto dokumentasi lokasi">`;
-    const close=()=>{if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});overlay.remove()};
-    overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('.public-photo-close'))close()});
+    overlay.innerHTML=`<button type="button" class="public-photo-close" aria-label="Tutup foto"><i class="bi bi-x-lg"></i></button><button type="button" class="public-lightbox-arrow previous" aria-label="Foto sebelumnya"><i class="bi bi-chevron-left"></i></button><figure><img src="${photos[index]}" alt="Foto dokumentasi lokasi"><figcaption>Foto ${index+1} dari ${photos.length}</figcaption></figure><button type="button" class="public-lightbox-arrow next" aria-label="Foto berikutnya"><i class="bi bi-chevron-right"></i></button>`;
+    const image=overlay.querySelector('img'),caption=overlay.querySelector('figcaption');
+    const show=indexValue=>{index=(indexValue+photos.length)%photos.length;if(image)image.src=photos[index];if(caption)caption.textContent=`Foto ${index+1} dari ${photos.length}`};
+    const close=()=>{if(document.fullscreenElement===overlay)document.exitFullscreen?.().catch(()=>{});overlay.remove();document.removeEventListener('keydown',keyboard)};
+    const keyboard=e=>{if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(index-1);if(e.key==='ArrowRight')show(index+1)};
+    overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('.public-photo-close'))close();else if(e.target.closest('.previous'))show(index-1);else if(e.target.closest('.next'))show(index+1)});
     document.body.append(overlay);
-    const image=overlay.querySelector('img');
-    image?.requestFullscreen?.().catch(()=>{});
-    document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.contains(overlay))overlay.remove()},{once:true});
+    document.addEventListener('keydown',keyboard);
+    overlay.requestFullscreen?.().catch(()=>{});
+    document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.contains(overlay)){overlay.remove();document.removeEventListener('keydown',keyboard)}},{once:true});
   });
   document.querySelectorAll('[data-export-table]').forEach(btn=>btn.addEventListener('click',()=>{
     const table=document.querySelector(btn.dataset.exportTable);if(!table)return;
