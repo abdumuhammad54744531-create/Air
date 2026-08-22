@@ -113,6 +113,9 @@ final class CrudController
     {
         if (!empty($def['readonly'])) { http_response_code(405); return; }
         verify_csrf();
+        $deletePhotoIds=$module==='locations' ? array_values(array_filter(array_map('intval',(array)($_POST['delete_photo_ids']??[])))) : [];
+        $removeLegacyPhoto=$module==='locations' && isset($_POST['remove_legacy_photo']);
+        $legacyPhoto=$module==='locations' && $id ? (string)(Database::query("SELECT photo FROM locations WHERE id=?",[$id])->fetch()['photo']??'') : '';
         $data = [];
         foreach ($def['fields'] as $field=>$label) {
             if (in_array($field,['is_active','is_public','show_on_home'],true)) $data[$field] = isset($_POST[$field]) ? 1 : 0;
@@ -199,10 +202,20 @@ final class CrudController
                 $savedId=(int)Database::connection()->lastInsertId();
                 activity('tambah',$module,$savedId,null,$data);
             }
+            if ($module==='locations' && $savedId && $legacyPhoto && !$removeLegacyPhoto) {
+                $exists=Database::query("SELECT id FROM location_photos WHERE location_id=? AND photo_path=? LIMIT 1",[$savedId,$legacyPhoto])->fetch();
+                if (!$exists) Database::query("INSERT INTO location_photos(location_id,photo_path,sort_order,created_at) VALUES(?,?,0,NOW())",[$savedId,$legacyPhoto]);
+            }
             if ($module==='locations' && $uploadedPhotos && $savedId) {
                 $next=(int)(Database::query("SELECT COALESCE(MAX(sort_order),0) max_sort FROM location_photos WHERE location_id=?",[$savedId])->fetch()['max_sort']??0);
                 foreach($uploadedPhotos as $path) Database::query("INSERT INTO location_photos(location_id,photo_path,sort_order,created_at) VALUES(?,?,?,NOW())",[$savedId,$path,++$next]);
-                Database::query("UPDATE locations SET updated_at=NOW() WHERE id=?",[$savedId]);
+            }
+            if ($module==='locations' && $savedId && ($uploadedPhotos || $deletePhotoIds || $removeLegacyPhoto)) {
+                foreach($deletePhotoIds as $photoId) Database::query("UPDATE location_photos SET deleted_at=NOW() WHERE id=? AND location_id=?",[$photoId,$savedId]);
+                $remaining=Database::query("SELECT photo_path FROM location_photos WHERE location_id=? AND deleted_at IS NULL ORDER BY sort_order,id LIMIT 1",[$savedId])->fetch();
+                $legacyStill=$legacyPhoto && Database::query("SELECT id FROM location_photos WHERE location_id=? AND photo_path=? AND deleted_at IS NULL LIMIT 1",[$savedId,$legacyPhoto])->fetch();
+                $primary=$remaining['photo_path']??($removeLegacyPhoto || !$legacyStill ? null : $legacyPhoto);
+                Database::query("UPDATE locations SET photo=?,updated_at=NOW() WHERE id=?",[$primary?:null,$savedId]);
             }
         } catch (\PDOException $e) {
             $message = str_contains($e->getMessage(),'Duplicate')
