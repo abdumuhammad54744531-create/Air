@@ -13,6 +13,8 @@
 /storage/uploads/*
 !/storage/uploads/.gitkeep
 /storage/installed.lock
+/public/uploads/*
+!/public/uploads/.gitkeep
 
 # Database dumps containing local data
 /database/backups/
