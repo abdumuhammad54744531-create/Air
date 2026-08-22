@@ -59,8 +59,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       const href=`${publicMapElement.dataset.baseUrl}?location=${encodeURIComponent(item.id)}`;
       const region=[item.village,item.district,item.city,item.province].filter(Boolean).map(escapeHtml).join(', ');
       const updated=item.last_update?new Date(item.last_update.replace(' ','T')).toLocaleString('id-ID'):'Belum ada data';
-      const photoUrl=item.photo?encodeURI(String(item.photo)).replaceAll('"','%22'):'';
-      const photo=photoUrl?`<button type="button" class="public-location-photo" data-location-photo="${photoUrl}" aria-label="Perbesar foto dokumentasi ${escapeHtml(item.name)}"><img src="${photoUrl}" alt="Dokumentasi ${escapeHtml(item.name)}"><span><i class="bi bi-arrows-fullscreen"></i> Perbesar foto</span></button>`:'';
+      const photoUrls=[...new Set((Array.isArray(item.photos)?item.photos:(item.photo?[item.photo]:[])).map(photo=>encodeURI(String(photo)).replaceAll('"','%22')).filter(Boolean))];
+      const photosData=encodeURIComponent(JSON.stringify(photoUrls));
+      const photo=photoUrls.length?`<div class="public-photo-gallery"><button type="button" class="public-photo-arrow" data-photo-gallery="previous" data-photos="${photosData}" aria-label="Foto sebelumnya"><i class="bi bi-chevron-left"></i></button><button type="button" class="public-location-photo" data-location-photo="${photoUrls[0]}" data-photos="${photosData}" data-photo-index="0" aria-label="Perbesar foto dokumentasi ${escapeHtml(item.name)}"><img src="${photoUrls[0]}" alt="Dokumentasi ${escapeHtml(item.name)}"><span><i class="bi bi-arrows-fullscreen"></i> Foto 1 dari ${photoUrls.length} · Perbesar</span></button><button type="button" class="public-photo-arrow" data-photo-gallery="next" data-photos="${photosData}" aria-label="Foto berikutnya"><i class="bi bi-chevron-right"></i></button></div>`:'';
       const details=`<div class="public-map-popup"><h3>${escapeHtml(item.name)}</h3><span class="popup-code">${escapeHtml(item.code)} · ${escapeHtml(item.type)}</span>
         <dl><dt>Wilayah</dt><dd>${region||'—'}</dd><dt>Alamat</dt><dd>${escapeHtml(item.address||'—')}</dd><dt>Koordinat</dt><dd>${escapeHtml(item.latitude)}, ${escapeHtml(item.longitude)}</dd>
         <dt>Elevasi</dt><dd>${item.elevation?escapeHtml(item.elevation)+' meter':'—'}</dd><dt>Perangkat</dt><dd>${item.device_count} alat (${item.online_devices||0} online)</dd>
@@ -88,12 +89,23 @@ document.addEventListener('DOMContentLoaded',()=>{
       try{
         const response=await fetch(publicMapElement.dataset.syncUrl,{cache:'no-store',headers:{Accept:'application/json'}});
         const payload=await response.json(); if(!payload.success)return;
-        const signature=payload.data.map(item=>[item.code,item.latitude,item.longitude,item.photo||'',item.updated_at].join(':')).join('|');
+        const signature=payload.data.map(item=>[item.code,item.latitude,item.longitude,item.updated_at].join(':')).join('|');
         if(signature!==publicMapElement.dataset.signature)window.location.reload();
       }catch(error){}
     },30000);
   }
   document.addEventListener('click',event=>{
+    const arrow=event.target.closest('[data-photo-gallery]');
+    if(arrow){
+      event.preventDefault();event.stopPropagation();
+      try{
+        const photos=JSON.parse(decodeURIComponent(arrow.dataset.photos||''));if(!photos.length)return;
+        const gallery=arrow.closest('.public-photo-gallery'),photoButton=gallery?.querySelector('[data-location-photo]');if(!photoButton)return;
+        const current=Number(photoButton.dataset.photoIndex||0),next=(current+(arrow.dataset.photoGallery==='next'?1:-1)+photos.length)%photos.length;
+        photoButton.dataset.photoIndex=String(next);photoButton.dataset.locationPhoto=photos[next];
+        const image=photoButton.querySelector('img'),caption=photoButton.querySelector('span');if(image)image.src=photos[next];if(caption)caption.innerHTML=`<i class="bi bi-arrows-fullscreen"></i> Foto ${next+1} dari ${photos.length} · Perbesar`;
+      }catch(error){}return;
+    }
     const button=event.target.closest('[data-location-photo]');if(!button)return;
     const photo=button.dataset.locationPhoto;if(!photo)return;
     const overlay=document.createElement('div');overlay.className='public-photo-lightbox';

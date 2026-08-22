@@ -49,6 +49,7 @@ final class CrudController
         if (!$def) { http_response_code(404); return; }
         $def['required'] = $this->requiredFields[$module] ?? [];
         require_auth($def['roles'] ?? []);
+        if ($module === 'locations') $this->ensureLocationPhotoSchema();
         if (in_array($module, ['devices', 'sensors'], true)) (new GoogleSheetSensorService())->ensureSchema();
         if ($module === 'sensors' && $method === 'GET') { $this->sensorSheetIndex(); return; }
         if ($method === 'DELETE' || ($method === 'POST' && ($_POST['_method'] ?? '') === 'DELETE')) { $this->delete($module,$def,$id); return; }
@@ -101,7 +102,11 @@ final class CrudController
             'devices'=>Database::query("SELECT id,name FROM devices WHERE deleted_at IS NULL ORDER BY name")->fetchAll(),
             'sensors'=>Database::query("SELECT id,name FROM sensors WHERE deleted_at IS NULL ORDER BY name")->fetchAll(),
         ];
-        view('crud/index', compact('module','def','rows','record','lookups') + ['title'=>$def['title']]);
+        $locationPhotos=[];
+        if ($module === 'locations' && $record) {
+            $locationPhotos=Database::query("SELECT id,photo_path,caption,sort_order FROM location_photos WHERE location_id=? AND deleted_at IS NULL ORDER BY sort_order,id",[$record['id']])->fetchAll();
+        }
+        view('crud/index', compact('module','def','rows','record','lookups','locationPhotos') + ['title'=>$def['title']]);
     }
 
     private function store(string $module, array $def, ?int $id): void
@@ -113,18 +118,22 @@ final class CrudController
             if (in_array($field,['is_active','is_public','show_on_home'],true)) $data[$field] = isset($_POST[$field]) ? 1 : 0;
             elseif (array_key_exists($field,$_POST)) $data[$field] = trim((string)$_POST[$field]) === '' ? null : trim((string)$_POST[$field]);
         }
-        if ($module === 'locations' && isset($_FILES['photo']) && (int)($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-            $upload = $_FILES['photo'];
-            if ((int)$upload['error'] !== UPLOAD_ERR_OK || !is_uploaded_file((string)$upload['tmp_name'])) { flash('danger','Foto dokumentasi gagal diunggah.'); redirect($module . ($id ? '/' . $id : '')); }
-            if ((int)$upload['size'] > 5 * 1024 * 1024) { flash('danger','Ukuran foto maksimal 5 MB.'); redirect($module . ($id ? '/' . $id : '')); }
-            $mime = (new \finfo(FILEINFO_MIME_TYPE))->file((string)$upload['tmp_name']);
-            $extensions = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
-            if (!isset($extensions[$mime])) { flash('danger','Foto harus berformat JPG, PNG, atau WEBP.'); redirect($module . ($id ? '/' . $id : '')); }
-            $directory = \App\Core\App::ROOT . '/public/uploads/locations';
-            if (!is_dir($directory)) mkdir($directory, 0775, true);
-            $filename = 'location-'.date('YmdHis').'-'.bin2hex(random_bytes(4)).'.'.$extensions[$mime];
-            if (!move_uploaded_file((string)$upload['tmp_name'], $directory.'/'.$filename)) { flash('danger','Foto dokumentasi tidak dapat disimpan.'); redirect($module . ($id ? '/' . $id : '')); }
-            $data['photo'] = 'uploads/locations/'.$filename;
+        $uploadedPhotos=[];
+        if ($module === 'locations' && isset($_FILES['photos']) && is_array($_FILES['photos']['name'] ?? null)) {
+            $files=$_FILES['photos']; $directory=\App\Core\App::ROOT.'/public/uploads/locations';
+            if (!is_dir($directory)) mkdir($directory,0775,true);
+            $extensions=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
+            foreach ($files['name'] as $index=>$name) {
+                if ((int)($files['error'][$index]??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE) continue;
+                if ((int)($files['error'][$index]??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK || !is_uploaded_file((string)($files['tmp_name'][$index]??''))) { flash('danger','Salah satu foto dokumentasi gagal diunggah.'); redirect($module . ($id ? '/' . $id : '')); }
+                if ((int)($files['size'][$index]??0)>5*1024*1024) { flash('danger','Ukuran setiap foto maksimal 5 MB.'); redirect($module . ($id ? '/' . $id : '')); }
+                $mime=(new \finfo(FILEINFO_MIME_TYPE))->file((string)$files['tmp_name'][$index]);
+                if (!isset($extensions[$mime])) { flash('danger','Foto harus berformat JPG, PNG, atau WEBP.'); redirect($module . ($id ? '/' . $id : '')); }
+                $filename='location-'.date('YmdHis').'-'.bin2hex(random_bytes(4)).'.'.$extensions[$mime];
+                if (!move_uploaded_file((string)$files['tmp_name'][$index],$directory.'/'.$filename)) { flash('danger','Foto dokumentasi tidak dapat disimpan.'); redirect($module . ($id ? '/' . $id : '')); }
+                $uploadedPhotos[]='uploads/locations/'.$filename;
+            }
+            if ($uploadedPhotos) $data['photo']=$uploadedPhotos[0];
         } elseif ($module === 'locations' && $id) unset($data['photo']);
         foreach ($def['required'] ?? [] as $field) {
             if (!array_key_exists($field,$data) || $data[$field] === null || $data[$field] === '') {
@@ -171,6 +180,7 @@ final class CrudController
         if (isset($data['email']) && $data['email'] && !filter_var($data['email'],FILTER_VALIDATE_EMAIL)) { flash('danger','Format email tidak valid.'); redirect($module); }
         $table = $def['table'];
         try {
+            $savedId=$id;
             if ($id) {
                 $before = Database::query("SELECT * FROM `$table` WHERE id=?",[$id])->fetch();
                 $sets = implode(',',array_map(fn($f)=>"`$f`=?",array_keys($data)));
@@ -186,7 +196,13 @@ final class CrudController
                 $fields = array_keys($data);
                 $sql = "INSERT INTO `$table` (`".implode('`,`',$fields)."`,created_at,updated_at) VALUES(".implode(',',array_fill(0,count($fields),'?')).",NOW(),NOW())";
                 Database::query($sql,array_values($data));
-                activity('tambah',$module,(int)Database::connection()->lastInsertId(),null,$data);
+                $savedId=(int)Database::connection()->lastInsertId();
+                activity('tambah',$module,$savedId,null,$data);
+            }
+            if ($module==='locations' && $uploadedPhotos && $savedId) {
+                $next=(int)(Database::query("SELECT COALESCE(MAX(sort_order),0) max_sort FROM location_photos WHERE location_id=?",[$savedId])->fetch()['max_sort']??0);
+                foreach($uploadedPhotos as $path) Database::query("INSERT INTO location_photos(location_id,photo_path,sort_order,created_at) VALUES(?,?,?,NOW())",[$savedId,$path,++$next]);
+                Database::query("UPDATE locations SET updated_at=NOW() WHERE id=?",[$savedId]);
             }
         } catch (\PDOException $e) {
             $message = str_contains($e->getMessage(),'Duplicate')
@@ -198,6 +214,20 @@ final class CrudController
             redirect($module . ($id ? '/' . $id : ''));
         }
         flash('success',$def['title'].' berhasil disimpan.'); redirect($module);
+    }
+
+    private function ensureLocationPhotoSchema(): void
+    {
+        Database::query("CREATE TABLE IF NOT EXISTS location_photos (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            location_id BIGINT UNSIGNED NOT NULL,
+            photo_path VARCHAR(255) NOT NULL,
+            caption VARCHAR(255) NULL,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            deleted_at DATETIME NULL,
+            INDEX idx_location_photos_location (location_id,sort_order)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
 
     private function delete(string $module, array $def, ?int $id): void

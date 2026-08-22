@@ -31,6 +31,13 @@ CREATE TABLE IF NOT EXISTS locations (
  created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, deleted_at DATETIME NULL,
  INDEX idx_location_status(is_active,is_public)
 ) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS location_photos (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, location_id BIGINT UNSIGNED NOT NULL,
+ photo_path VARCHAR(255) NOT NULL, caption VARCHAR(255) NULL, sort_order INT NOT NULL DEFAULT 0,
+ created_at DATETIME DEFAULT CURRENT_TIMESTAMP, deleted_at DATETIME NULL,
+ INDEX idx_location_photos_location(location_id,sort_order),
+ FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS devices (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, location_id BIGINT UNSIGNED, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(150) NOT NULL,
  serial_number VARCHAR(100), brand VARCHAR(100), model VARCHAR(100), type VARCHAR(100), installed_at DATE, purchased_at DATE, manufacture_year YEAR,

@@ -31,6 +31,7 @@ final class PublicController
             WHERE l.is_public=1 AND l.is_active=1 AND l.deleted_at IS NULL
             GROUP BY l.id,l.code,l.name,l.type,l.province,l.city,l.district,l.village,l.address,
             l.latitude,l.longitude,l.elevation,l.photo,l.description,l.updated_at ORDER BY l.name")->fetchAll();
+        $locations=$this->attachLocationPhotos($locations);
         $requestedLocation=(int)($_GET['location']??0);
         $allowedIds=array_map('intval',array_column($locations,'id'));
         $selectedLocationId=in_array($requestedLocation,$allowedIds,true)?$requestedLocation:($allowedIds[0]??0);
@@ -79,6 +80,30 @@ final class PublicController
         view('public/home',['title'=>'Portal Pemantauan Sumber Mata Air','latest'=>$latest,
             'samples'=>array_slice(array_values($samples),0,12),'trend'=>$trend,'fixed'=>$fixed,'latestTime'=>$latestTime,
             'locations'=>$locations,'selectedLocation'=>$selectedLocation,'selectedLocationId'=>$selectedLocationId,'devices'=>$devices],'layouts/public');
+    }
+
+    private function attachLocationPhotos(array $locations): array
+    {
+        if (!$locations) return $locations;
+        Database::query("CREATE TABLE IF NOT EXISTS location_photos (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, location_id BIGINT UNSIGNED NOT NULL,
+            photo_path VARCHAR(255) NOT NULL, caption VARCHAR(255) NULL, sort_order INT NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, deleted_at DATETIME NULL,
+            INDEX idx_location_photos_location (location_id,sort_order)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $ids=array_map('intval',array_column($locations,'id'));
+        $placeholders=implode(',',array_fill(0,count($ids),'?'));
+        $photos=Database::query("SELECT location_id,photo_path FROM location_photos WHERE deleted_at IS NULL AND location_id IN ({$placeholders}) ORDER BY sort_order,id",$ids)->fetchAll();
+        $byLocation=[];
+        foreach($photos as $photo)$byLocation[(int)$photo['location_id']][]=$photo['photo_path'];
+        foreach($locations as &$location) {
+            $all=[];
+            if (!empty($location['photo'])) $all[]=$location['photo'];
+            foreach($byLocation[(int)$location['id']]??[] as $photo)if(!in_array($photo,$all,true))$all[]=$photo;
+            $location['photos']=$all;
+        }
+        unset($location);
+        return $locations;
     }
 
     private function googleSheetReadings(array $devices, float $sourceWidth): array

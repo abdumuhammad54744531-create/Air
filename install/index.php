@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         require App::ROOT.'/database/migrations/20260731_network_projects.php';
         require App::ROOT.'/database/migrations/20260806_automatic_design.php';
         require App::ROOT.'/database/migrations/20260816_google_sheet_sensor_sync.php';
+        require App::ROOT.'/database/migrations/20260822_location_photo_gallery.php';
         file_put_contents(App::ROOT.'/storage/installed.lock',date(DATE_ATOM));
         flash('success','Instalasi selesai. Masuk dengan akun administrator.'); redirect('login');
     } catch(Throwable $e) { $errors[]=$e->getMessage(); }

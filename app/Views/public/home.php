@@ -5,7 +5,7 @@ $difference=$debit-$fixed['peak_demand']; $quantitySafe=$difference>=0; $quality
 $qualityParameters=['suhu_air'=>'Suhu','ph'=>'pH','tds'=>'TDS','kekeruhan'=>'Kekeruhan','oksigen_terlarut'=>'Oksigen Terlarut'];
 foreach($qualityParameters as $key=>$label)if(isset($latest[$key])&&$latest[$key]['quality_status']!=='normal')$qualitySafe=false;
 $fmt=fn($value,$decimals=2)=>number_format((float)$value,$decimals,',','.');
-$mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['code'],$location['latitude'],$location['longitude'],$location['photo']??'',$location['updated_at']]),$locations));
+$mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['code'],$location['latitude'],$location['longitude'],$location['updated_at']]),$locations));
 ?>
 <main class="monitor-portal" data-public-sheet-refresh="30" data-public-sheet-latest="<?=e($latestTime)?>" data-public-sheet-status-url="<?=e(url('publik/live-status'))?>" data-public-location-id="<?=$selectedLocationId?>">
 <header class="portal-header">
