@@ -54,8 +54,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     const selected=+publicMapElement.dataset.selected,map=L.map(publicMapElement,{scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView([-4,122.5],9),markers=[];
     addMapBaseLayers(map);
     locations.forEach(item=>{
-      const isActive=+item.id===selected,color=isActive?'#f59e0b':'#087f5b',size=isActive?24:19;
-      const icon=L.divIcon({className:'portal-map-marker',html:`<div class="portal-map-marker-dot" style="width:${size}px;height:${size}px;background:${color}"></div><span class="portal-map-marker-label ${isActive?'active':''}">${escapeHtml(item.name)}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+      const isActive=+item.id===selected,size=isActive?31:27;
+      const icon=L.divIcon({className:'portal-map-marker',html:`<img class="portal-map-marker-water-icon ${isActive?'active':''}" src="${publicMapElement.dataset.waterIcon||'assets/images/as-air.ico'}" style="width:${size}px;height:${size}px" alt=""><span class="portal-map-marker-label ${isActive?'active':''}">${escapeHtml(item.name)}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
       const href=`${publicMapElement.dataset.baseUrl}?location=${encodeURIComponent(item.id)}`;
       const region=[item.village,item.district,item.city,item.province].filter(Boolean).map(escapeHtml).join(', ');
       const updated=item.last_update?new Date(item.last_update.replace(' ','T')).toLocaleString('id-ID'):'Belum ada data';
@@ -69,8 +69,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         ${item.description?`<p>${escapeHtml(item.description)}</p>`:''}${photo}<a href="${href}">Tampilkan data lokasi ini</a></div>`;
       const marker=L.marker([+item.latitude,+item.longitude],{icon,zIndexOffset:isActive?1000:0}).addTo(map)
         .bindPopup(details,{maxWidth:380,minWidth:280});
-      marker.on('click',()=>{if(isActive)marker.openPopup()});markers.push(marker);
-      if(isActive)marker.openPopup();
+      markers.push(marker);
     });
     if(markers.length)map.fitBounds(L.featureGroup(markers).getBounds().pad(.25),{maxZoom:13});
     const fullscreenButton=document.querySelector('#publicMapFullscreen');
