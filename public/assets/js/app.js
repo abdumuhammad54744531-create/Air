@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     addMapBaseLayers(map);
     locations.forEach(item=>{
       const isActive=+item.id===selected,color=isActive?'#f59e0b':'#087f5b',size=isActive?24:19;
-      const icon=L.divIcon({className:'portal-map-marker',html:`<div style="width:${size}px;height:${size}px;background:${color};border:4px solid white;border-radius:50%;box-shadow:0 2px 9px #092a5566"></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+      const icon=L.divIcon({className:'portal-map-marker',html:`<div class="portal-map-marker-dot" style="width:${size}px;height:${size}px;background:${color}"></div><span class="portal-map-marker-label ${isActive?'active':''}">${escapeHtml(item.name)}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
       const href=`${publicMapElement.dataset.baseUrl}?location=${encodeURIComponent(item.id)}`;
       const region=[item.village,item.district,item.city,item.province].filter(Boolean).map(escapeHtml).join(', ');
       const updated=item.last_update?new Date(item.last_update.replace(' ','T')).toLocaleString('id-ID'):'Belum ada data';
