@@ -37,21 +37,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const mapElement=document.querySelector('#monitoringMap');
   if(mapElement&&window.L){
-    const data=JSON.parse(mapElement.dataset.locations||'[]'),map=L.map(mapElement,{scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView([-4.0,122.5],9);
+    const data=JSON.parse(mapElement.dataset.locations||'[]'),map=L.map(mapElement,{minZoom:5,maxZoom:21,zoomControl:true,preferCanvas:true,scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView([-4.0,122.5],9);
     addMapBaseLayers(map);
     const markers=[];
     data.forEach(item=>{const color=item.device_status==='aktif'?'#0fa56f':item.device_status==='dalam_perawatan'?'#2284d6':'#e34859';
       const icon=L.divIcon({className:'',html:`<div style="width:18px;height:18px;background:${color};border:3px solid white;border-radius:50%;box-shadow:0 2px 8px #2346"></div>`,iconSize:[18,18]});
       const marker=L.marker([+item.latitude,+item.longitude],{icon}).addTo(map).bindPopup(`<strong>${escapeHtml(item.name)}</strong><br>${escapeHtml(item.device_name||'Belum ada alat')}<br><span>${escapeHtml(item.device_status||'tidak diketahui')}</span>`); marker.meta=item;markers.push(marker);
     });
-    if(markers.length)map.fitBounds(L.featureGroup(markers).getBounds().pad(.2));
+    if(markers.length){const bounds=L.featureGroup(markers).getBounds().pad(.2);map.fitBounds(bounds);map.__simmaResetView=()=>map.fitBounds(bounds)}
     const filter=()=>{const q=(document.querySelector('#mapSearch')?.value||'').toLowerCase(),status=document.querySelector('#mapStatus')?.value||'';markers.forEach(m=>{const show=(!q||m.meta.name.toLowerCase().includes(q))&&(!status||m.meta.device_status===status);show?m.addTo(map):m.remove()})};
     document.querySelector('#mapSearch')?.addEventListener('input',filter);document.querySelector('#mapStatus')?.addEventListener('change',filter);
   }
   const publicMapElement=document.querySelector('#publicLocationsMap');
   if(publicMapElement&&window.L){
     const locations=JSON.parse(publicMapElement.dataset.locations||'[]').filter(item=>item.latitude&&item.longitude);
-    const selected=+publicMapElement.dataset.selected,map=L.map(publicMapElement,{scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView([-4,122.5],9),markers=[];
+    const selected=+publicMapElement.dataset.selected,map=L.map(publicMapElement,{minZoom:5,maxZoom:21,zoomControl:true,preferCanvas:true,scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView([-4,122.5],9),markers=[];
     addMapBaseLayers(map);
     locations.forEach(item=>{
       const isActive=+item.id===selected,size=isActive?31:27;
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         .bindPopup(details,{maxWidth:380,minWidth:280});
       markers.push(marker);
     });
-    if(markers.length)map.fitBounds(L.featureGroup(markers).getBounds().pad(.25),{maxZoom:13});
+    if(markers.length){const bounds=L.featureGroup(markers).getBounds().pad(.25);map.fitBounds(bounds,{maxZoom:13});map.__simmaResetView=()=>map.fitBounds(bounds,{maxZoom:13})}
     const fullscreenButton=document.querySelector('#publicMapFullscreen');
     fullscreenButton?.addEventListener('click',async()=>{
       try{
@@ -927,11 +927,31 @@ document.addEventListener('DOMContentLoaded',()=>{
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value??'';return d.innerHTML}
 function formatWaterNumber(value){return new Intl.NumberFormat('id-ID',{minimumFractionDigits:0,maximumFractionDigits:2}).format(+value||0)}
 function addMapBaseLayers(map){
-  const streets=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
-  const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri'});
-  const topography=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'Map data © OpenStreetMap, SRTM | Map style © OpenTopoMap'});
-  streets.addTo(map);
-  L.control.layers({'Peta Jalan':streets,'Satelit':satellite,'Topografi':topography},null,{position:'topright',collapsed:true}).addTo(map);
-  setInterval(()=>{streets.redraw();satellite.redraw();topography.redraw()},300000);
-  return {streets,satellite,topography};
+  const container=map.getContainer(),storageKey=`simma-map-basemap-${container.id||'default'}`;
+  const safeStorage={get:()=>{try{return localStorage.getItem(storageKey)}catch(error){return null}},set:value=>{try{localStorage.setItem(storageKey,value)}catch(error){}}};
+  const makeLayer=(name,url,options={})=>{
+    let warned=false;
+    const layer=L.tileLayer(url,{minZoom:5,maxZoom:21,maxNativeZoom:19,attribution:'',...options});
+    layer.on('tileerror',event=>{container.dataset.mapTileError='1';if(!warned){warned=true;console.warn(`Tile peta gagal dimuat (${name}). Peta tetap dapat digunakan.`,event?.coords||'')}});
+    return layer;
+  };
+  const standard=makeLayer('Standar','https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
+  const streets=makeLayer('Jalan','https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',{maxNativeZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>'});
+  const light=makeLayer('Light','https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxNativeZoom:20,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'});
+  const satellite=makeLayer('Satelit','https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,attribution:'Tiles &copy; Esri'});
+  const satelliteLabels=makeLayer('Label satelit','https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,attribution:'Labels &copy; Esri'});
+  const hybrid=L.layerGroup([satellite,satelliteLabels]);
+  const terrain=makeLayer('Topografi','https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxNativeZoom:17,attribution:'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'});
+  const dark=makeLayer('Gelap','https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxNativeZoom:20,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'});
+  const baseMaps={'Standar':standard,'Peta Jalan':streets,'Light':light,'Satelit':satellite,'Satelit + Label':hybrid,'Topografi':terrain,'Gelap':dark};
+  const selected=safeStorage.get();(baseMaps[selected]||standard).addTo(map);
+  L.control.layers(baseMaps,null,{position:'topright',collapsed:true}).addTo(map);
+  map.on('baselayerchange',event=>safeStorage.set(event.name));
+  map.__simmaDefaultView={center:map.getCenter(),zoom:map.getZoom()};
+  const reset=L.control({position:'topleft'});reset.onAdd=()=>{const button=L.DomUtil.create('button','leaflet-bar leaflet-control simma-map-reset');button.type='button';button.title='Reset / lihat semua data peta';button.setAttribute('aria-label','Reset tampilan peta');button.innerHTML='<i class="bi bi-house-door-fill"></i>';L.DomEvent.disableClickPropagation(button);L.DomEvent.on(button,'click',event=>{L.DomEvent.preventDefault(event);if(typeof map.__simmaResetView==='function')map.__simmaResetView();else{const view=map.__simmaDefaultView;map.setView(view.center,view.zoom)}});return button};reset.addTo(map);
+  L.control.scale({metric:true,imperial:false,position:'bottomleft'}).addTo(map);
+  const pointer=L.control({position:'bottomright'});pointer.onAdd=()=>{const element=L.DomUtil.create('div','simma-map-pointer');element.textContent='Lat: —  Lng: —';map.on('mousemove',event=>{element.textContent=`Lat: ${event.latlng.lat.toFixed(6)}  Lng: ${event.latlng.lng.toFixed(6)}`});return element};pointer.addTo(map);
+  if(window.ResizeObserver){const observer=new ResizeObserver(()=>map.invalidateSize(false));observer.observe(container);map.__simmaResizeObserver=observer}
+  window.addEventListener('resize',()=>map.invalidateSize(false),{passive:true});
+  return {standard,streets,light,satellite,hybrid,terrain,dark};
 }

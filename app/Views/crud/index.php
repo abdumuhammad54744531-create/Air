@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const mapEl=document.querySelector('#locationPickerMap'); if(!mapEl||!window.L)return;
  const latInput=document.querySelector('input[name="latitude"]'),lngInput=document.querySelector('input[name="longitude"]'),status=document.querySelector('#locationPickerStatus');
  const initialLat=parseFloat(mapEl.dataset.lat),initialLng=parseFloat(mapEl.dataset.lng),hasInitial=Number.isFinite(initialLat)&&Number.isFinite(initialLng);
- const map=L.map(mapEl,{scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView(hasInitial?[initialLat,initialLng]:[-4.0,122.5],hasInitial?15:8);
+ const map=L.map(mapEl,{minZoom:5,maxZoom:21,zoomControl:true,preferCanvas:true,scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView(hasInitial?[initialLat,initialLng]:[-4.0,122.5],hasInitial?15:8);
  addMapBaseLayers(map);
  let selectedMarker=null;
  const choose=(lat,lng,center=true)=>{lat=+lat.toFixed(7);lng=+lng.toFixed(7);latInput.value=lat;lngInput.value=lng;if(selectedMarker)selectedMarker.setLatLng([lat,lng]);else selectedMarker=L.marker([lat,lng],{draggable:true}).addTo(map);selectedMarker.off('dragend').on('dragend',e=>{const p=e.target.getLatLng();choose(p.lat,p.lng,false)});if(center)map.setView([lat,lng],Math.max(map.getZoom(),15));status.classList.add('selected');status.innerHTML=`<i class="bi bi-check-circle-fill"></i> Titik dipilih: ${lat}, ${lng}`};
