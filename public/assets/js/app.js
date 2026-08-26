@@ -942,7 +942,7 @@ function addMapBaseLayers(map){
   const satellite=makeLayer('Satelit','https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,attribution:'Tiles &copy; Esri'});
   const satelliteLabels=makeLayer('Label satelit','https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,attribution:'Labels &copy; Esri'});
   const hybrid=L.layerGroup([satellite,satelliteLabels]);
-  const terrain=makeLayer('Topografi','https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxNativeZoom:17,attribution:'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'});
+  const terrain=makeLayer('Topografi','https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,attribution:'Tiles &copy; Esri'});
   const dark=makeLayer('Gelap','https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxNativeZoom:20,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'});
   const baseMaps={'Standar':standard,'Peta Jalan':streets,'Light':light,'Satelit':satellite,'Satelit + Label':hybrid,'Topografi':terrain,'Gelap':dark};
   const selected=safeStorage.get();if(!baseMaps[selected])activeBaseName='Standar';(baseMaps[activeBaseName]||standard).addTo(map);

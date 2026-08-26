@@ -9,4 +9,4 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="<?=url('assets/js/app.js')?>?v=1.8.13"></script></body></html>
+<script src="<?=url('assets/js/app.js')?>?v=1.8.14"></script></body></html>
