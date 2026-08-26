@@ -929,10 +929,11 @@ function formatWaterNumber(value){return new Intl.NumberFormat('id-ID',{minimumF
 function addMapBaseLayers(map){
   const container=map.getContainer(),storageKey=`simma-map-basemap-${container.id||'default'}`;
   const safeStorage={get:()=>{try{return localStorage.getItem(storageKey)}catch(error){return null}},set:value=>{try{localStorage.setItem(storageKey,value)}catch(error){}}};
+  let activeBaseName=safeStorage.get()||'Standar',activeTileErrors=0,fallbackToStandard=()=>{};
   const makeLayer=(name,url,options={})=>{
     let warned=false;
     const layer=L.tileLayer(url,{minZoom:5,maxZoom:21,maxNativeZoom:19,attribution:'',...options});
-    layer.on('tileerror',event=>{container.dataset.mapTileError='1';if(!warned){warned=true;console.warn(`Tile peta gagal dimuat (${name}). Peta tetap dapat digunakan.`,event?.coords||'')}});
+    layer.on('tileerror',event=>{container.dataset.mapTileError='1';if(!warned){warned=true;console.warn(`Tile peta gagal dimuat (${name}). Peta tetap dapat digunakan.`,event?.coords||'')}if(name===activeBaseName||(activeBaseName==='Satelit + Label'&&(name==='Satelit'||name==='Label satelit')))fallbackToStandard(name)});
     return layer;
   };
   const standard=makeLayer('Standar','https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
@@ -944,9 +945,12 @@ function addMapBaseLayers(map){
   const terrain=makeLayer('Topografi','https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxNativeZoom:17,attribution:'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'});
   const dark=makeLayer('Gelap','https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxNativeZoom:20,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'});
   const baseMaps={'Standar':standard,'Peta Jalan':streets,'Light':light,'Satelit':satellite,'Satelit + Label':hybrid,'Topografi':terrain,'Gelap':dark};
-  const selected=safeStorage.get();(baseMaps[selected]||standard).addTo(map);
+  const selected=safeStorage.get();if(!baseMaps[selected])activeBaseName='Standar';(baseMaps[activeBaseName]||standard).addTo(map);
+  const fallbackNotice=L.control({position:'bottomleft'});let fallbackNoticeElement;
+  fallbackNotice.onAdd=()=>{fallbackNoticeElement=L.DomUtil.create('div','simma-map-fallback');fallbackNoticeElement.hidden=true;return fallbackNoticeElement};fallbackNotice.addTo(map);
+  fallbackToStandard=provider=>{if(activeBaseName==='Standar'||++activeTileErrors<2)return;const failedName=activeBaseName,failedLayer=baseMaps[failedName];if(failedLayer&&map.hasLayer(failedLayer))map.removeLayer(failedLayer);standard.addTo(map);activeBaseName='Standar';activeTileErrors=0;safeStorage.set('Standar');if(fallbackNoticeElement){fallbackNoticeElement.hidden=false;fallbackNoticeElement.textContent=`${failedName} tidak tersedia. Peta beralih ke Standar.`;setTimeout(()=>{if(fallbackNoticeElement)fallbackNoticeElement.hidden=true},7000)}};
   L.control.layers(baseMaps,null,{position:'topright',collapsed:true}).addTo(map);
-  map.on('baselayerchange',event=>safeStorage.set(event.name));
+  map.on('baselayerchange',event=>{activeBaseName=event.name;activeTileErrors=0;safeStorage.set(event.name)});
   map.__simmaDefaultView={center:map.getCenter(),zoom:map.getZoom()};
   const reset=L.control({position:'topleft'});reset.onAdd=()=>{const button=L.DomUtil.create('button','leaflet-bar leaflet-control simma-map-reset');button.type='button';button.title='Reset / lihat semua data peta';button.setAttribute('aria-label','Reset tampilan peta');button.innerHTML='<i class="bi bi-house-door-fill"></i>';L.DomEvent.disableClickPropagation(button);L.DomEvent.on(button,'click',event=>{L.DomEvent.preventDefault(event);if(typeof map.__simmaResetView==='function')map.__simmaResetView();else{const view=map.__simmaDefaultView;map.setView(view.center,view.zoom)}});return button};reset.addTo(map);
   L.control.scale({metric:true,imperial:false,position:'bottomleft'}).addTo(map);
