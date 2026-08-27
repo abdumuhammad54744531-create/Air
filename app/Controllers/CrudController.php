@@ -8,7 +8,7 @@ final class CrudController
 {
     private array $definitions = [
         'locations'=>['table'=>'locations','title'=>'Data Lokasi','fields'=>['code'=>'Kode Lokasi','name'=>'Nama Lokasi','type'=>'Jenis Lokasi','province'=>'Provinsi','city'=>'Kabupaten/Kota','district'=>'Kecamatan','village'=>'Desa/Kelurahan','address'=>'Alamat','latitude'=>'Latitude','longitude'=>'Longitude','elevation'=>'Ketinggian (m)','person_in_charge'=>'Penanggung Jawab','phone'=>'Nomor Telepon','email'=>'Email','photo'=>'Foto Dokumentasi','description'=>'Deskripsi','is_active'=>'Status Aktif','is_public'=>'Tampil Publik']],
-        'devices'=>['table'=>'devices','title'=>'Data Alat','fields'=>['code'=>'Kode Alat','name'=>'Nama Alat','serial_number'=>'Nomor Seri','brand'=>'Merek','model'=>'Model','type'=>'Jenis Alat','location_id'=>'Lokasi Sumber Air','google_sheet_url'=>'URL Google Sheet Data Sensor','google_sheet_gid'=>'ID Tab / GID Sheet','google_sheet_name'=>'Nama Tab Sheet','installed_at'=>'Tanggal Pemasangan','power_source'=>'Sumber Daya','communication_type'=>'Komunikasi','send_interval_seconds'=>'Interval Kirim (detik)','firmware_version'=>'Firmware','status'=>'Status','is_public'=>'Tampil Publik']],
+        'devices'=>['table'=>'devices','title'=>'Data Alat','fields'=>['code'=>'Kode Alat','name'=>'Nama Alat','serial_number'=>'Nomor Seri','brand'=>'Merek','model'=>'Model','type'=>'Jenis Alat','location_id'=>'Lokasi Sumber Air','water_source_id'=>'Sumber Air / Penampang','google_sheet_url'=>'URL Google Sheet Data Sensor','google_sheet_gid'=>'ID Tab / GID Sheet','google_sheet_name'=>'Nama Tab Sheet','installed_at'=>'Tanggal Pemasangan','power_source'=>'Sumber Daya','communication_type'=>'Komunikasi','send_interval_seconds'=>'Interval Kirim (detik)','firmware_version'=>'Firmware','status'=>'Status','is_public'=>'Tampil Publik']],
         'sensors'=>['table'=>'sensors','title'=>'Data Sensor','fields'=>['code'=>'Kode Sensor','name'=>'Nama Sensor','device_id'=>'Alat','parameter'=>'Parameter','unit'=>'Satuan','normal_min'=>'Normal Min','normal_max'=>'Normal Maks','warning_min'=>'Waspada Min','warning_max'=>'Waspada Maks','danger_min'=>'Bahaya Min','danger_max'=>'Bahaya Maks','calibration_factor'=>'Faktor Kalibrasi','offset_value'=>'Offset','decimal_places'=>'Desimal','status'=>'Status','is_public'=>'Tampil Publik','chart_color'=>'Warna Grafik']],
         'monitoring'=>['table'=>'sensor_readings','title'=>'Monitoring Data','readonly'=>true,'fields'=>[]],
         'alerts'=>['table'=>'alerts','title'=>'Peringatan','readonly'=>true,'fields'=>[]],
@@ -50,6 +50,7 @@ final class CrudController
         $def['required'] = $this->requiredFields[$module] ?? [];
         require_auth($def['roles'] ?? []);
         if ($module === 'locations') $this->ensureLocationPhotoSchema();
+        if ($module === 'devices') $this->ensureDeviceSourceField();
         if (in_array($module, ['devices', 'sensors'], true)) (new GoogleSheetSensorService())->ensureSchema();
         if ($module === 'sensors' && $method === 'GET') { $this->sensorSheetIndex(); return; }
         if ($method === 'DELETE' || ($method === 'POST' && ($_POST['_method'] ?? '') === 'DELETE')) { $this->delete($module,$def,$id); return; }
@@ -101,6 +102,7 @@ final class CrudController
             'locations'=>Database::query("SELECT id,name FROM locations WHERE deleted_at IS NULL ORDER BY name")->fetchAll(),
             'devices'=>Database::query("SELECT id,name FROM devices WHERE deleted_at IS NULL ORDER BY name")->fetchAll(),
             'sensors'=>Database::query("SELECT id,name FROM sensors WHERE deleted_at IS NULL ORDER BY name")->fetchAll(),
+            'water_sources'=>Database::query("SELECT ws.id,ws.code,ws.name,ws.location_id,l.name location_name FROM water_sources ws LEFT JOIN locations l ON l.id=ws.location_id WHERE ws.deleted_at IS NULL ORDER BY ws.name")->fetchAll(),
         ];
         $locationPhotos=[];
         if ($module === 'locations' && $record) {
@@ -162,6 +164,13 @@ final class CrudController
             $geometric = (float)($data['length_m']??0) * (float)($data['width_m']??0) * (float)($data['height_m']??0);
             $data['geometric_volume_m3'] = round($geometric,3);
             $data['effective_capacity_m3'] = round($geometric * (float)($data['effective_percent']??100) / 100,3);
+        }
+        if ($module === 'devices' && !empty($data['water_source_id'])) {
+            $source=Database::query("SELECT location_id FROM water_sources WHERE id=? AND deleted_at IS NULL",[(int)$data['water_source_id']])->fetch();
+            if (!$source || (int)$source['location_id']!==(int)($data['location_id']??0)) {
+                flash('danger','Sumber air/penampang yang dipilih harus berada pada Lokasi Sumber Air yang sama.');
+                redirect($module . ($id ? '/' . $id : ''));
+            }
         }
         if ($module === 'service-areas') {
             $daily = (float)($data['population']??0) * (float)($data['liters_per_person_day']??0) + (float)($data['public_facility_liters_day']??0);
@@ -241,6 +250,18 @@ final class CrudController
             deleted_at DATETIME NULL,
             INDEX idx_location_photos_location (location_id,sort_order)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    private function ensureDeviceSourceField(): void
+    {
+        try {
+            $column=Database::query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='devices' AND COLUMN_NAME='water_source_id'")->fetch();
+            if(!$column) Database::query("ALTER TABLE devices ADD COLUMN water_source_id BIGINT UNSIGNED NULL AFTER location_id");
+            try { Database::query("CREATE INDEX idx_devices_water_source ON devices(water_source_id)"); } catch (\Throwable) {}
+            // Hubungkan otomatis hanya bila satu lokasi memiliki tepat satu sumber air.
+            // Dengan begitu data lama aman dan tidak salah memilih saat satu lokasi punya banyak sumber.
+            Database::query("UPDATE devices d JOIN (SELECT location_id,MIN(id) source_id FROM water_sources WHERE deleted_at IS NULL GROUP BY location_id HAVING COUNT(*)=1) ws ON ws.location_id=d.location_id SET d.water_source_id=ws.source_id WHERE d.water_source_id IS NULL");
+        } catch (\Throwable) {}
     }
 
     private function delete(string $module, array $def, ?int $id): void

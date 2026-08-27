@@ -14,6 +14,7 @@ use App\Controllers\DistributionNetworkController;
 use App\Controllers\HydraulicAnalysisController;
 use App\Controllers\NetworkProjectController;
 use App\Controllers\AutomaticDesignController;
+use App\Controllers\SourceCrossSectionController;
 
 spl_autoload_register(function (string $class): void {
     $prefix = 'App\\';
@@ -52,6 +53,7 @@ try {
     if (preg_match('#^water-results/(\d+)$#',$path,$m)) { (new WaterManagementController())->results((int)$m[1]); exit; }
     if ($path === 'water-sensor-monitoring') { (new WaterManagementController())->sensorMonitoring(); exit; }
     if ($path === 'water-sensor-monitoring/data') { (new WaterManagementController())->sensorMonitoringData(); exit; }
+    if ($path === 'source-cross-section') { (new SourceCrossSectionController())->handle($method); exit; }
     if ($path === 'sensors/google-sheet-data') { (new CrudController())->googleSheetData(); exit; }
     if ($path === 'water-reports') { (new WaterManagementController())->reports(); exit; }
     if ($path === 'network-projects') { (new NetworkProjectController())->handle($method); exit; }

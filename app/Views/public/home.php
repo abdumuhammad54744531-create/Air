@@ -1,5 +1,6 @@
 <?php
 $debit=(float)($latest['debit']['value']??0); $height=(float)($latest['tinggi_muka_air']['value']??0);
+$waterWidth=(float)($latest['lebar_penampang']['value']??$fixed['source_width']);
 $speed=(float)($latest['kecepatan_aliran']['value']??($height>0?$debit/1000/($fixed['source_width']*$height):0));
 $difference=$debit-$fixed['peak_demand']; $quantitySafe=$difference>=0; $qualitySafe=true;
 $qualityParameters=['suhu_air'=>'Suhu','ph'=>'pH','tds'=>'TDS','kekeruhan'=>'Kekeruhan','oksigen_terlarut'=>'Oksigen Terlarut'];
@@ -30,8 +31,15 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
   <label class="ms-auto d-flex align-items-center gap-2 small text-secondary">Pembaruan <select id="publicSheetRefreshRate" class="form-select form-select-sm" aria-label="Interval pembaruan web publik" style="width:auto"><option value="5">5 dtk</option><option value="10">10 dtk</option><option value="15">15 dtk</option><option value="30" selected>30 dtk</option><option value="60">1 mnt</option><option value="120">2 mnt</option></select></label>
 </section>
 <?php if($devices):?><section class="portal-devices">
-  <?php foreach($devices as $device):?><article><i class="bi bi-router-fill"></i><span><b><?=e($device['name'])?></b><small><?=e($device['code'])?> · <?=e($device['type'])?></small></span><em class="<?=($device['connection_status']==='online')?'online':'offline'?>"><i></i><?=e(ucwords(str_replace('_',' ',$device['connection_status'])))?></em></article><?php endforeach?>
+  <?php foreach($devices as $device):
+    $apiOnline=($device['connection_status']??'')==='online';
+    $sheetConnected=!empty($device['sheet_connected']);
+    $isActive=($device['status']??'')==='aktif';
+    $connectionLabel=$apiOnline?'Online':($sheetConnected?'Terhubung Sheet':($isActive?'Aktif · Sheet belum terbaca':'Tidak aktif'));
+    $connectionClass=($apiOnline||$sheetConnected)?'online':'offline';
+  ?><article><i class="bi bi-router-fill"></i><span><b><?=e($device['name'])?></b><small><?=e($device['code'])?> · <?=e($device['type'])?></small></span><em class="<?=$connectionClass?>"><i></i><?=e($connectionLabel)?></em></article><?php endforeach?>
 </section><?php else:?><div class="portal-empty"><i class="bi bi-router"></i> Belum ada alat yang diizinkan tampil pada lokasi ini.</div><?php endif?>
+<?php if(!empty($crossSectionLinks)): $sectionLink=$crossSectionLinks[0]; ?><section class="portal-export-bar"><span><i class="bi bi-bezier2-fill"></i> <b>Penampang yang dipakai:</b> <?=e($sectionLink['code'].' · '.$sectionLink['name'])?> · Lokasi <?=e($sectionLink['location_name']??'—')?>. Luas dan lebar air dihitung ulang dari tinggi air setiap pembacaan.</span></section><?php else:?><section class="portal-export-bar"><span><i class="bi bi-exclamation-triangle"></i> Belum ada penampang tersimpan untuk lokasi ini. Luas masih memakai lebar tetap dari pengaturan.</span></section><?php endif?>
 <section class="portal-export-bar no-export"><span><i class="bi bi-image"></i> Simpan tampilan dashboard lokasi ini sebagai gambar JPG berkualitas tinggi.</span><button type="button" id="savePublicDashboardJpg" class="btn btn-success btn-sm" data-location-name="<?=e($selectedLocation['name']??'monitoring-air')?>"><i class="bi bi-download"></i> Simpan JPG Resolusi Tinggi</button></section>
 
 <section class="portal-top-grid">
@@ -53,14 +61,14 @@ $mapSyncSignature=implode('|',array_map(fn($location)=>implode(':',[$location['c
   <article class="portal-card quality-card"><h2>STATUS PARAMETER KUALITAS AIR (TERKINI)</h2><div class="table-responsive"><table><thead><tr><th>Parameter</th><th>Nilai</th><th>Baku Mutu*</th><th>Status</th></tr></thead><tbody>
   <?php $standards=['suhu_air'=>'≤ 30 °C','ph'=>'6 – 9','tds'=>'≤ 500 mg/L','kekeruhan'=>'≤ 25 NTU','oksigen_terlarut'=>'≥ 4 mg/L']; foreach($qualityParameters as $key=>$label):if(!isset($latest[$key]))continue;$r=$latest[$key];?>
   <tr><td><?=e($label)?></td><td><b><?=$fmt($r['value'])?></b> <?=e($r['unit'])?></td><td><?=e($standards[$key]??'—')?></td><td><span class="<?=$r['quality_status']==='normal'?'safe':'unsafe'?>"><?=$r['quality_status']==='normal'?'AMAN':strtoupper(e($r['quality_status']))?></span></td></tr><?php endforeach?>
-  <tr><td>Kecepatan Aliran</td><td><b><?=$fmt($speed)?></b> m/s</td><td>—</td><td><span class="safe">AMAN</span></td></tr><tr><td>Tinggi Air</td><td><b><?=$fmt($height)?></b> m</td><td>—</td><td><span class="safe">AMAN</span></td></tr>
+  <tr><td>Kecepatan Aliran</td><td><b><?=$fmt($speed)?></b> m/s</td><td>—</td><td><span class="safe">AMAN</span></td></tr><tr><td>Tinggi Air</td><td><b><?=$fmt($height)?></b> m</td><td>—</td><td><span class="safe">AMAN</span></td></tr><tr><td>Lebar Air Rata-rata (B = A/H)</td><td><b><?=$fmt($waterWidth,3)?></b> m</td><td>—</td><td><span class="safe">AMAN</span></td></tr>
   </tbody></table></div></article>
 </section>
 
 <section class="portal-bottom-grid portal-bottom-single">
-  <article class="portal-card monitoring-table"><h2>DATA MONITORING (SAMPEL JAM PUNCAK)</h2><div class="table-responsive"><table><thead><tr><th>Tanggal</th><th>Waktu</th><th>Suhu<br>(°C)</th><th>pH</th><th>TDS<br>(mg/L)</th><th>Kecepatan<br>(m/s)</th><th>Tinggi Air<br>(m)</th><th>Luas A<br>(m²)</th><th>Debit Q<br>(L/s)</th><th>Kebutuhan<br>(L/s)</th><th>Selisih<br>(L/s)</th><th>Status Kuantitas</th><th>Status Kualitas</th></tr></thead><tbody>
-  <?php foreach($samples as $row):$q=(float)($row['debit']['value']??0);$h=(float)($row['tinggi_muka_air']['value']??0);$v=$h>0?$q/1000/($fixed['source_width']*$h):0;$diff=$q-$fixed['peak_demand'];$qSafe=$diff>=0;?>
-  <tr><td><?=date('d/m/Y',strtotime($row['recorded_at']))?></td><td><?=date('H.i',strtotime($row['recorded_at']))?></td><td><?=$fmt($row['suhu_air']['value']??0)?></td><td><?=$fmt($row['ph']['value']??0)?></td><td><?=$fmt($row['tds']['value']??0)?></td><td><?=$fmt($v)?></td><td><?=$fmt($h)?></td><td><?=$fmt($fixed['source_width']*$h,3)?></td><td><?=$fmt($q)?></td><td><?=$fmt($fixed['peak_demand'])?></td><td class="<?=$qSafe?'':'negative'?>"><?=$fmt($diff)?></td><td><span class="<?=$qSafe?'safe':'unsafe'?>"><?=$qSafe?'AMAN':'TIDAK AMAN'?></span></td><td><span class="safe">AMAN</span></td></tr><?php endforeach?>
+  <article class="portal-card monitoring-table"><h2>DATA MONITORING (SAMPEL JAM PUNCAK)</h2><div class="table-responsive"><table><thead><tr><th>Tanggal</th><th>Waktu</th><th>Suhu<br>(°C)</th><th>pH</th><th>TDS<br>(mg/L)</th><th>Kecepatan<br>(m/s)</th><th>Tinggi Air<br>(m)</th><th>Lebar Air Rata-rata<br>B = A/H (m)</th><th>Luas A<br>(m²)</th><th>Debit Q<br>(L/s)</th><th>Kebutuhan<br>(L/s)</th><th>Selisih<br>(L/s)</th><th>Status Kuantitas</th><th>Status Kualitas</th></tr></thead><tbody>
+<?php foreach($samples as $row):$q=(float)($row['debit']['value']??0);$h=(float)($row['tinggi_muka_air']['value']??0);$w=(float)($row['lebar_penampang']['value']??$fixed['source_width']);$a=(float)($row['luas_penampang']['value']??($fixed['source_width']*$h));$v=$a>0?$q/1000/$a:0;$diff=$q-$fixed['peak_demand'];$qSafe=$diff>=0;?>
+  <tr><td><?=date('d/m/Y',strtotime($row['recorded_at']))?></td><td><?=date('H.i',strtotime($row['recorded_at']))?></td><td><?=$fmt($row['suhu_air']['value']??0)?></td><td><?=$fmt($row['ph']['value']??0)?></td><td><?=$fmt($row['tds']['value']??0)?></td><td><?=$fmt($v)?></td><td><?=$fmt($h)?></td><td><?=$fmt($w,3)?></td><td><?=$fmt($a,3)?></td><td><?=$fmt($q)?></td><td><?=$fmt($fixed['peak_demand'])?></td><td class="<?=$qSafe?'':'negative'?>"><?=$fmt($diff)?></td><td><span class="<?=$qSafe?'safe':'unsafe'?>"><?=$qSafe?'AMAN':'TIDAK AMAN'?></span></td><td><span class="safe">AMAN</span></td></tr><?php endforeach?>
   </tbody></table></div><div class="table-note"><span>* Baku mutu mengacu pada PP No. 22 Tahun 2021 Lampiran VI.</span><b>Keterangan: <em class="safe"><i class="bi bi-shield-check"></i> AMAN</em><em class="unsafe"><i class="bi bi-shield-x"></i> TIDAK AMAN</em></b></div></article>
 </section>
 <section class="portal-map-card portal-map-bottom">
