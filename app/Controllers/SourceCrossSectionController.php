@@ -33,11 +33,11 @@ final class SourceCrossSectionController
         $simulated=str_replace(',','.',trim((string)($_POST['simulation_water_level_m']??'')));
         $waterLevel=is_numeric($simulated)?(float)$simulated:$this->sensorHeight((int)$source['location_id']);
         if($waterLevel===null||$waterLevel<0){flash('danger','Isi Tinggi Air Simulasi agar lebar dan luas penampang dapat dihitung.');redirect('source-cross-section?source='.$source['id']);}
-        $result=$this->calculate($points,$waterLevel);
+        $result=$this->calculate($points,$waterLevel);$workspaceSettings=$this->workspaceSettings((string)($_POST['workspace_settings_json']??''));
         $exists=Database::query('SELECT id FROM source_cross_sections WHERE source_id=?',[$source['id']])->fetch();
-        $data=[json_encode($points,JSON_UNESCAPED_UNICODE),'simulasi',$waterLevel,$result['area_m2'],$result['average_width_m'],$result['surface_width_m'],$result['max_depth_m'],$source['id']];
-        if($exists) Database::query('UPDATE source_cross_sections SET profile_points_json=?,water_level_mode=?,water_level_m=?,wet_area_m2=?,average_width_m=?,water_surface_width_m=?,max_water_depth_m=?,updated_at=NOW() WHERE source_id=?',$data);
-        else Database::query('INSERT INTO source_cross_sections(profile_points_json,water_level_mode,water_level_m,wet_area_m2,average_width_m,water_surface_width_m,max_water_depth_m,source_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,NOW(),NOW())',[...array_slice($data,0,7),$source['id']]);
+        $data=[json_encode($points,JSON_UNESCAPED_UNICODE),'simulasi',$waterLevel,$result['area_m2'],$result['average_width_m'],$result['surface_width_m'],$result['max_depth_m'],json_encode($workspaceSettings,JSON_UNESCAPED_UNICODE),$source['id']];
+        if($exists) Database::query('UPDATE source_cross_sections SET profile_points_json=?,water_level_mode=?,water_level_m=?,wet_area_m2=?,average_width_m=?,water_surface_width_m=?,max_water_depth_m=?,workspace_settings_json=?,updated_at=NOW() WHERE source_id=?',$data);
+        else Database::query('INSERT INTO source_cross_sections(profile_points_json,water_level_mode,water_level_m,wet_area_m2,average_width_m,water_surface_width_m,max_water_depth_m,workspace_settings_json,source_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,NOW(),NOW())',[...array_slice($data,0,8),$source['id']]);
         activity('simpan_penampang','water_sources',(int)$source['id'],null,['simulation_water_level_m'=>$waterLevel,'average_width_m'=>$result['average_width_m'],'wet_area_m2'=>$result['area_m2']]);
         flash('success','Penampang dan perhitungan otomatis berhasil disimpan.');redirect('source-cross-section?source='.$source['id']);
     }
@@ -92,15 +92,24 @@ final class SourceCrossSectionController
         $maxDepth=max(0,$waterLevel-$minZ);return ['area_m2'=>round(max(0,$area),4),'surface_width_m'=>round(max(0,$surfaceWidth),4),'max_depth_m'=>round($maxDepth,4),'average_width_m'=>round($maxDepth>0?$area/$maxDepth:0,4)];
     }
 
+    private function workspaceSettings(string $json): array
+    {
+        $raw=json_decode($json,true);if(!is_array($raw))return [];$settings=[];
+        foreach(['drawingWidth','drawingMinElevation','drawingMaxElevation','gridMinor','gridMajor'] as $key){if(!array_key_exists($key,$raw))continue;$value=str_replace(',','.',trim((string)$raw[$key]));$minimum=$key==='drawingMinElevation'?-100:0;if($value===''||(is_numeric($value)&&(float)$value>=$minimum))$settings[$key]=$value===''?'':round((float)$value,4);}
+        foreach(['grid','axes','ticks','profileLine','profilePoints','soilColor','soilHatch','pointNames','pointCoordinates','waterLine','waterFill'] as $key)if(array_key_exists($key,$raw))$settings[$key]=(bool)$raw[$key];if(isset($raw['snapMode'])&&in_array($raw['snapMode'],['minor','major','none'],true))$settings['snapMode']=$raw['snapMode'];
+        return $settings;
+    }
+
     private function ensureSchema(): void
     {
         Database::query("CREATE TABLE IF NOT EXISTS source_cross_sections (
           id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, source_id BIGINT UNSIGNED NOT NULL UNIQUE,
           profile_points_json LONGTEXT NOT NULL, water_level_mode VARCHAR(20) NOT NULL DEFAULT 'sensor', water_level_m DECIMAL(12,4) NULL,
-          wet_area_m2 DECIMAL(14,4) NULL, average_width_m DECIMAL(14,4) NULL, water_surface_width_m DECIMAL(14,4) NULL, max_water_depth_m DECIMAL(14,4) NULL,
+          wet_area_m2 DECIMAL(14,4) NULL, average_width_m DECIMAL(14,4) NULL, water_surface_width_m DECIMAL(14,4) NULL, max_water_depth_m DECIMAL(14,4) NULL, workspace_settings_json LONGTEXT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY(source_id) REFERENCES water_sources(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        try{$column=Database::query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='source_cross_sections' AND COLUMN_NAME='workspace_settings_json'")->fetch();if(!$column)Database::query('ALTER TABLE source_cross_sections ADD COLUMN workspace_settings_json LONGTEXT NULL AFTER max_water_depth_m');}catch(\Throwable){}
     }
 
     private function ensureDeviceSourceLinks(): void
