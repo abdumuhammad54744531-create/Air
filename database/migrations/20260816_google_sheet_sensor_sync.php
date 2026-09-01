@@ -1,5 +1,12 @@
 <?php
+declare(strict_types=1);
+
 use App\Core\Database;
+use App\Core\Env;
+
+require_once dirname(__DIR__,2).'/app/Core/Env.php';
+require_once dirname(__DIR__,2).'/app/Core/Database.php';
+Env::load(dirname(__DIR__,2).'/.env');
 
 $columns = Database::query('SHOW COLUMNS FROM devices')->fetchAll();
 $names = array_column($columns, 'Field');

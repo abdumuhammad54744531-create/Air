@@ -1,5 +1,12 @@
 <?php
+declare(strict_types=1);
+
 use App\Core\Database;
+use App\Core\Env;
+
+require_once dirname(__DIR__,2).'/app/Core/Env.php';
+require_once dirname(__DIR__,2).'/app/Core/Database.php';
+Env::load(dirname(__DIR__,2).'/.env');
 
 Database::query("CREATE TABLE IF NOT EXISTS location_photos (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
