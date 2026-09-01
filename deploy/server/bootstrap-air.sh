@@ -6,7 +6,6 @@ REPO_URL="https://github.com/abdumuhammad54744531-create/Air.git"
 DOMAIN="air-buton.oisara.my.id"
 DB_NAME="monitoring_air"
 DB_USER="air_app"
-TUNNEL_ID="15a855af-31aa-4400-832b-47403c13e8c2"
 DONE_MARKER="/var/lib/oisara/air-bootstrap.done"
 FIRST_INSTALL=0
 
@@ -116,7 +115,8 @@ fi
 nginx -t
 systemctl reload nginx
 systemctl restart cloudflared
-cloudflared tunnel --origincert /home/abdu/.cloudflared/cert.pem route dns --overwrite-dns "$TUNNEL_ID" "$DOMAIN"
+# DNS oisara.my.id memakai wildcard yang sudah mengarah ke tunnel ini.
+# Tidak menjalankan `route dns` karena origin certificate server terikat ke zona oisara.web.id.
 curl -fsS -H "Host: $DOMAIN" http://127.0.0.1/login | grep -q 'Masuk'
 date -Iseconds > "$DONE_MARKER"
 echo "AIR_BOOTSTRAP_OK"
