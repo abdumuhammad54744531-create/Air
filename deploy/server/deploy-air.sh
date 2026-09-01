@@ -22,7 +22,7 @@ chmod 2770 "$APP_DIR/storage" "$APP_DIR/storage/sessions" "$APP_DIR/storage/hydr
 chmod 0640 "$APP_DIR/.env"
 nginx -t
 systemctl reload nginx
-curl -fsS -H 'Host: air.oisara.my.id' http://127.0.0.1/login | grep -q 'Masuk'
+curl -fsS -H 'Host: air-buton.oisara.my.id' http://127.0.0.1/login | grep -q 'Masuk'
 echo "DEPLOY_OK"
 echo "APP=air"
 echo "BACKUP=$BACKUP_DIR/monitoring_air-$STAMP.sql.gz"

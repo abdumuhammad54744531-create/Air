@@ -2,7 +2,7 @@
 
 ## Deploy server Oisara
 
-Produksi memakai domain `air.oisara.my.id`, root `/srv/apps/air/public`, database terpisah `monitoring_air`, dan Deploy manual dari Panel Oisara. Script server berada di `deploy/server/`. Data `.env`, database, upload, sesi, backup, dan hasil hidraulika tidak dihapus oleh deploy GitHub.
+Produksi memakai domain `air-buton.oisara.my.id`, root `/srv/apps/air/public`, database terpisah `monitoring_air`, dan Deploy manual dari Panel Oisara. Script server berada di `deploy/server/`. Data `.env`, database, upload, sesi, backup, dan hasil hidraulika tidak dihapus oleh deploy GitHub.
 
 Pada Linux ARM, EPANET dibangun dari OpenWaterAnalytics EPANET v2.3.5 sebagai `/usr/local/bin/runepanet` dan `/usr/local/lib/libepanet2.so`. Windows tetap memakai `tools/epanet/runepanet.exe`.
 

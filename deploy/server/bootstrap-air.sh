@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_DIR="/srv/apps/air"
 REPO_URL="https://github.com/abdumuhammad54744531-create/Air.git"
-DOMAIN="air.oisara.my.id"
+DOMAIN="air-buton.oisara.my.id"
 DB_NAME="monitoring_air"
 DB_USER="air_app"
 TUNNEL_ID="15a855af-31aa-4400-832b-47403c13e8c2"
@@ -89,8 +89,9 @@ if [[ ! -x /usr/local/bin/runepanet || ! -f /usr/local/lib/libepanet2.so ]]; the
     ldconfig
 fi
 
-install -m 0644 "$APP_DIR/deploy/server/nginx-air.conf" /etc/nginx/sites-available/air.oisara.my.id
-ln -sfn /etc/nginx/sites-available/air.oisara.my.id /etc/nginx/sites-enabled/air.oisara.my.id
+rm -f /etc/nginx/sites-enabled/air.oisara.my.id /etc/nginx/sites-available/air.oisara.my.id
+install -m 0644 "$APP_DIR/deploy/server/nginx-air.conf" /etc/nginx/sites-available/air-buton.oisara.my.id
+ln -sfn /etc/nginx/sites-available/air-buton.oisara.my.id /etc/nginx/sites-enabled/air-buton.oisara.my.id
 install -m 0750 "$APP_DIR/deploy/server/deploy-air.sh" /usr/local/sbin/deploy-air
 cat > /etc/sudoers.d/oisara-panel-air <<'SUDOERS'
 www-data ALL=(root) NOPASSWD: /usr/local/sbin/deploy-air
@@ -105,9 +106,12 @@ if [[ -f "$PANEL_FILE" && ! -f "$DONE_MARKER" ]]; then
     php -l "$PANEL_FILE"
 fi
 
-if ! grep -q 'hostname: air\.oisara\.my\.id' /etc/cloudflared/config.yml; then
+if grep -q 'hostname: air\.oisara\.my\.id' /etc/cloudflared/config.yml; then
+    sed -i '/  - hostname: air\.oisara\.my\.id/{N;d;}' /etc/cloudflared/config.yml
+fi
+if ! grep -q 'hostname: air-buton\.oisara\.my\.id' /etc/cloudflared/config.yml; then
     cp -a /etc/cloudflared/config.yml "/etc/cloudflared/config.yml.backup-air-$(date +%Y%m%d-%H%M%S)"
-    sed -i '/  - service: http_status:404/i\  - hostname: air.oisara.my.id\n    service: http://localhost:80' /etc/cloudflared/config.yml
+    sed -i '/  - service: http_status:404/i\  - hostname: air-buton.oisara.my.id\n    service: http://localhost:80' /etc/cloudflared/config.yml
 fi
 nginx -t
 systemctl reload nginx
