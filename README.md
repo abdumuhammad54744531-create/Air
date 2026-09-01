@@ -1,5 +1,11 @@
 # Sistem Informasi Monitoring dan Manajemen Air (SIMMA)
 
+## Deploy server Oisara
+
+Produksi memakai domain `air.oisara.my.id`, root `/srv/apps/air/public`, database terpisah `monitoring_air`, dan Deploy manual dari Panel Oisara. Script server berada di `deploy/server/`. Data `.env`, database, upload, sesi, backup, dan hasil hidraulika tidak dihapus oleh deploy GitHub.
+
+Pada Linux ARM, EPANET dibangun dari OpenWaterAnalytics EPANET v2.3.5 sebagai `/usr/local/bin/runepanet` dan `/usr/local/lib/libepanet2.so`. Windows tetap memakai `tools/epanet/runepanet.exe`.
+
 SIMMA adalah aplikasi PHP/MySQL berbasis MVC untuk mengelola lokasi, perangkat IoT, sensor, pembacaan air, peringatan, pemeliharaan, kalibrasi, laporan, dan informasi publik.
 
 Modul Pengelolaan Air menyediakan data sumber, reservoir, wilayah layanan, jaringan distribusi, wizard simulasi enam langkah, simulasi time-step, snapshot hasil, rekomendasi otomatis, laporan neraca air, dan integrasi debit Arduino/ESP32. Editor jaringan bergaya EPANET mendukung titik master otomatis maupun junction kosong, drag-and-drop posisi, banyak cabang atau pipa paralel pada satu titik, garis berarah, serta ikon dinamis untuk junction, sumber, reservoir, tangki, pompa, valve, dan meter.

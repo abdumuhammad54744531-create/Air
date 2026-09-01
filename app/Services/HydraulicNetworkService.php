@@ -5,6 +5,7 @@ namespace App\Services;
 
 use App\Core\App;
 use App\Core\Database;
+use App\Core\Env;
 use RuntimeException;
 
 final class HydraulicNetworkService
@@ -262,19 +263,39 @@ final class HydraulicNetworkService
 
     public function run(array $payload): array
     {
-        $engine=App::ROOT.'/tools/epanet/runepanet.exe';
-        if (!is_file($engine)) throw new RuntimeException('Engine EPANET belum tersedia.');
+        $engine=$this->epanetEngine();
         $directory=App::ROOT.'/storage/hydraulic/'.date('Ymd');
         if (!is_dir($directory) && !mkdir($directory,0775,true) && !is_dir($directory)) throw new RuntimeException('Folder kerja hidraulika tidak dapat dibuat.');
         $token=date('His').'-'.bin2hex(random_bytes(5));$input=$directory.'/'.$token.'.inp';$report=$directory.'/'.$token.'.rpt';$binary=$directory.'/'.$token.'.bin';
         file_put_contents($input,$this->toInp($payload),LOCK_EX);
-        $command='"'.$engine.'" "'.$input.'" "'.$report.'" "'.$binary.'"';
+        $command=[$engine,$input,$report,$binary];
+        if (PHP_OS_FAMILY!=='Windows') {
+            $libraryPath=(string)Env::get('EPANET_LIBRARY_PATH','/usr/local/lib');
+            $command=['/usr/bin/env','LD_LIBRARY_PATH='.$libraryPath,$engine,$input,$report,$binary];
+        }
         $pipes=[];$process=proc_open($command,[1=>['pipe','w'],2=>['pipe','w']],$pipes,App::ROOT);
         if (!is_resource($process)) throw new RuntimeException('Engine EPANET tidak dapat dijalankan.');
         $stdout=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exitCode=proc_close($process);
         $reportText=is_file($report)?file_get_contents($report):'';
         $engineErrors=[];if (preg_match_all('/\\*\\*\\*\\s*(Error[^\\r\\n]*)/i',$reportText."\n".$stderr,$matches)) $engineErrors=array_values(array_unique(array_map('trim',$matches[1])));
         return ['success'=>$exitCode===0&&!$engineErrors,'exit_code'=>$exitCode,'engine_errors'=>$engineErrors,'stdout'=>trim($stdout),'stderr'=>trim($stderr),'report_excerpt'=>$this->reportExcerpt($reportText),'results'=>$this->parseResults($reportText,$payload),'files'=>['input'=>$input,'report'=>$report,'binary'=>is_file($binary)?$binary:null]];
+    }
+
+    private function epanetEngine(): string
+    {
+        $configured=trim((string)Env::get('EPANET_BIN',''));
+        $candidates=$configured!==''?[$configured]:(PHP_OS_FAMILY==='Windows'
+            ? [App::ROOT.'/tools/epanet/runepanet.exe']
+            : [App::ROOT.'/tools/epanet/runepanet','/usr/local/bin/runepanet','/usr/bin/runepanet']);
+        foreach ($candidates as $candidate) {
+            if (!is_file($candidate)) continue;
+            if (PHP_OS_FAMILY!=='Windows' && !is_executable($candidate)) {
+                throw new RuntimeException('Engine EPANET Linux ditemukan tetapi tidak memiliki izin eksekusi: '.$candidate);
+            }
+            return $candidate;
+        }
+        $expected=PHP_OS_FAMILY==='Windows'?'runepanet.exe':'runepanet dan libepanet2.so';
+        throw new RuntimeException('Engine EPANET belum tersedia untuk '.PHP_OS_FAMILY.'. Diperlukan '.$expected.'.');
     }
 
     private function options(array $input): array
