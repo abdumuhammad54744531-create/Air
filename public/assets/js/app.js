@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const filter=()=>{const q=(document.querySelector('#mapSearch')?.value||'').toLowerCase(),status=document.querySelector('#mapStatus')?.value||'';markers.forEach(m=>{const show=(!q||m.meta.name.toLowerCase().includes(q))&&(!status||m.meta.device_status===status);show?m.addTo(map):m.remove()})};
     document.querySelector('#mapSearch')?.addEventListener('input',filter);document.querySelector('#mapStatus')?.addEventListener('change',filter);
   }
-  const publicMapElement=document.querySelector('#publicLocationsMap');
+  const publicMapElement=document.querySelector('#publicLocationsMap'),publicMapStage=document.querySelector('#publicMapStage'),publicTableauMap=document.querySelector('#publicTableauMap');
   if(publicMapElement&&window.L){
     const locations=JSON.parse(publicMapElement.dataset.locations||'[]').filter(item=>item.latitude&&item.longitude);
     const selected=+publicMapElement.dataset.selected,map=L.map(publicMapElement,{minZoom:5,maxZoom:21,zoomControl:true,preferCanvas:true,scrollWheelZoom:true,wheelPxPerZoomLevel:60}).setView([-4,122.5],9),markers=[];
@@ -72,17 +72,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       markers.push(marker);
     });
     if(markers.length){const bounds=L.featureGroup(markers).getBounds().pad(.25);map.fitBounds(bounds,{maxZoom:13});map.__simmaResetView=()=>map.fitBounds(bounds,{maxZoom:13})}
-    const fullscreenButton=document.querySelector('#publicMapFullscreen');
+    const mapViewButtons=[...document.querySelectorAll('[data-public-map-view]')];
+    const setPublicMapView=view=>{const tableau=view==='tableau';publicMapElement.hidden=tableau;if(publicTableauMap)publicTableauMap.hidden=!tableau;mapViewButtons.forEach(button=>button.classList.toggle('active',button.dataset.publicMapView===view));if(!tableau)setTimeout(()=>map.invalidateSize(),100)};
+    mapViewButtons.forEach(button=>button.addEventListener('click',()=>setPublicMapView(button.dataset.publicMapView)));
+    const fullscreenButton=document.querySelector('#publicMapFullscreen'),fullscreenTarget=publicMapStage||publicMapElement;
     fullscreenButton?.addEventListener('click',async()=>{
       try{
-        if(document.fullscreenElement===publicMapElement) await document.exitFullscreen();
-        else await publicMapElement.requestFullscreen();
+        if(document.fullscreenElement===fullscreenTarget) await document.exitFullscreen();
+        else await fullscreenTarget.requestFullscreen();
       }catch(error){}
     });
     document.addEventListener('fullscreenchange',()=>{
-      const active=document.fullscreenElement===publicMapElement;
+      const active=document.fullscreenElement===fullscreenTarget;
       if(fullscreenButton)fullscreenButton.innerHTML=active?'<i class="bi bi-fullscreen-exit"></i> Keluar layar penuh':'<i class="bi bi-arrows-fullscreen"></i> Layar penuh';
-      setTimeout(()=>map.invalidateSize(),100);
+      if(!publicMapElement.hidden)setTimeout(()=>map.invalidateSize(),100);
     });
     setInterval(async()=>{
       try{
@@ -949,7 +952,7 @@ function addMapBaseLayers(map){
   const fallbackNotice=L.control({position:'bottomleft'});let fallbackNoticeElement;
   fallbackNotice.onAdd=()=>{fallbackNoticeElement=L.DomUtil.create('div','simma-map-fallback');fallbackNoticeElement.hidden=true;return fallbackNoticeElement};fallbackNotice.addTo(map);
   fallbackToStandard=provider=>{if(activeBaseName==='Standar'||++activeTileErrors<2)return;const failedName=activeBaseName,failedLayer=baseMaps[failedName];if(failedLayer&&map.hasLayer(failedLayer))map.removeLayer(failedLayer);standard.addTo(map);activeBaseName='Standar';activeTileErrors=0;safeStorage.set('Standar');if(fallbackNoticeElement){fallbackNoticeElement.hidden=false;fallbackNoticeElement.textContent=`${failedName} tidak tersedia. Peta beralih ke Standar.`;setTimeout(()=>{if(fallbackNoticeElement)fallbackNoticeElement.hidden=true},7000)}};
-  L.control.layers(baseMaps,null,{position:'topright',collapsed:true}).addTo(map);
+  L.control.layers(baseMaps,null,{position:'topright',collapsed:container.id!=='publicLocationsMap'}).addTo(map);
   map.on('baselayerchange',event=>{activeBaseName=event.name;activeTileErrors=0;safeStorage.set(event.name)});
   map.__simmaDefaultView={center:map.getCenter(),zoom:map.getZoom()};
   const reset=L.control({position:'topleft'});reset.onAdd=()=>{const button=L.DomUtil.create('button','leaflet-bar leaflet-control simma-map-reset');button.type='button';button.title='Reset / lihat semua data peta';button.setAttribute('aria-label','Reset tampilan peta');button.innerHTML='<i class="bi bi-house-door-fill"></i>';L.DomEvent.disableClickPropagation(button);L.DomEvent.on(button,'click',event=>{L.DomEvent.preventDefault(event);if(typeof map.__simmaResetView==='function')map.__simmaResetView();else{const view=map.__simmaDefaultView;map.setView(view.center,view.zoom)}});return button};reset.addTo(map);
