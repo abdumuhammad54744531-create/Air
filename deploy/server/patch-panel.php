@@ -62,4 +62,8 @@ if (file_put_contents($temporary, $source, LOCK_EX) === false || !rename($tempor
     fwrite(STDERR, "Panel hasil patch tidak dapat dipasang.\n");
     exit(8);
 }
+if (!chown($path, 'root') || !chgrp($path, 'www-data') || !chmod($path, 0640)) {
+    fwrite(STDERR, "Kartu Air terpasang, tetapi izin sumber panel tidak dapat diamankan.\n");
+    exit(9);
+}
 echo "Kartu dan Deploy Air ditambahkan ke panel.\n";
