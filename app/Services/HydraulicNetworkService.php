@@ -273,7 +273,10 @@ final class HydraulicNetworkService
             $libraryPath=(string)Env::get('EPANET_LIBRARY_PATH','/usr/local/lib');
             $command=['/usr/bin/env','LD_LIBRARY_PATH='.$libraryPath,$engine,$input,$report,$binary];
         }
-        $pipes=[];$process=proc_open($command,[1=>['pipe','w'],2=>['pipe','w']],$pipes,App::ROOT);
+        // EPANET 2.3 membuat file hidraulika sementara di working directory.
+        // Root aplikasi production bersifat read-only bagi www-data, sehingga
+        // proses harus berjalan di folder kerja hidraulika yang memang writable.
+        $pipes=[];$process=proc_open($command,[1=>['pipe','w'],2=>['pipe','w']],$pipes,$directory);
         if (!is_resource($process)) throw new RuntimeException('Engine EPANET tidak dapat dijalankan.');
         $stdout=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exitCode=proc_close($process);
         $reportText=is_file($report)?file_get_contents($report):'';
