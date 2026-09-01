@@ -74,7 +74,10 @@ chown -R abdu:www-data "$APP_DIR"
 find "$APP_DIR" -type d -not -path '*/.git/*' -exec chmod 0750 {} +
 find "$APP_DIR" -type f -not -path '*/.git/*' -exec chmod 0640 {} +
 chmod 0755 "$APP_DIR/public" "$APP_DIR/public/index.php"
-chmod 2770 "$APP_DIR/storage" "$APP_DIR/storage/sessions" "$APP_DIR/storage/hydraulic" "$APP_DIR/storage/uploads" "$APP_DIR/storage/backups" "$APP_DIR/public/uploads"
+for writable_dir in "$APP_DIR/storage" "$APP_DIR/public/uploads"; do
+    find "$writable_dir" -type d -exec chmod 2770 {} +
+    find "$writable_dir" -type f -exec chmod 0660 {} +
+done
 chmod 0640 "$APP_DIR/.env"
 
 if [[ ! -x /usr/local/bin/runepanet || ! -f /usr/local/lib/libepanet2.so ]]; then
