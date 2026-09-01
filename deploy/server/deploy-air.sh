@@ -6,12 +6,15 @@ exec 9>/run/lock/deploy-air.lock
 flock -n 9 || { echo "Deploy Air lain masih berjalan." >&2; exit 1; }
 test -d "$APP_DIR/.git" || { echo "Repository Air belum terpasang." >&2; exit 1; }
 test -f "$APP_DIR/.env" || { echo "Kredensial .env Air tidak ditemukan." >&2; exit 1; }
+sudo -u abdu git -C "$APP_DIR" config core.fileMode false
 install -d -m 0750 -o root -g root "$BACKUP_DIR"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 mariadb-dump --single-transaction --routines --triggers monitoring_air | gzip -9 > "$BACKUP_DIR/monitoring_air-$STAMP.sql.gz"
 cp -a "$APP_DIR/.env" "$BACKUP_DIR/env-$STAMP"
 sudo -u abdu git -C "$APP_DIR" fetch origin main
 sudo -u abdu git -C "$APP_DIR" merge --ff-only origin/main
+install -m 0750 "$APP_DIR/deploy/server/deploy-air.sh" /usr/local/sbin/deploy-air
+install -m 0644 "$APP_DIR/deploy/server/nginx-air.conf" /etc/nginx/sites-available/air-buton.oisara.my.id
 for migration in "$APP_DIR"/database/migrations/*.php; do php "$migration"; done
 install -d -m 2770 -o abdu -g www-data "$APP_DIR/storage" "$APP_DIR/storage/sessions" "$APP_DIR/storage/hydraulic" "$APP_DIR/storage/uploads" "$APP_DIR/storage/backups" "$APP_DIR/public/uploads"
 chown -R abdu:www-data "$APP_DIR"

@@ -23,6 +23,7 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
     fi
     sudo -u abdu git clone --branch main --single-branch "$REPO_URL" "$APP_DIR"
 fi
+sudo -u abdu git -C "$APP_DIR" config core.fileMode false
 
 if [[ ! -f "$APP_DIR/.env" ]]; then
     FIRST_INSTALL=1
