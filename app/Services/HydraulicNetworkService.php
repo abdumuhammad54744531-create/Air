@@ -43,6 +43,7 @@ final class HydraulicNetworkService
 
         foreach (Database::query("SELECT * FROM distribution_nodes WHERE project_id=? AND deleted_at IS NULL",[$projectId])->fetchAll() as $row) {
             if (!isset($connectedNodeKeys['node:'.$row['id']])) continue;
+            $row=$this->synchronizeLinkedMaster($row);
             $append($row,'node',(string)$row['node_type'],[
                 'base_demand_lps'=>(float)$row['base_demand_lps'],'demand_pattern_id'=>$row['demand_pattern_id'],
                 'emitter_coefficient'=>(float)$row['emitter_coefficient'],'initial_quality'=>(float)$row['initial_quality'],
@@ -86,6 +87,40 @@ final class HydraulicNetworkService
             $curves[(int)$row['id']]=$row+['engine_id'=>$this->engineId((string)$row['code']),'points'=>json_decode((string)$row['points_json'],true)?:[]];
         }
         return ['project_id'=>$projectId,'nodes'=>$nodes,'links'=>$links,'patterns'=>$patterns,'curves'=>$curves];
+    }
+
+    /** Nilai master terbaru selalu digunakan walaupun titik ditautkan sebelum fitur sinkronisasi tersedia. */
+    private function synchronizeLinkedMaster(array $node): array
+    {
+        $type=(string)($node['linked_type']??'');$id=(int)($node['linked_id']??0);
+        if (!$id) return $node;
+        if ($type==='source') {
+            $master=Database::query("SELECT name,elevation_m,min_flow_lps,max_flow_lps,status FROM water_sources WHERE id=? AND deleted_at IS NULL",[$id])->fetch();
+            if ($master) return array_replace($node,[
+                'name'=>$master['name'],'node_type'=>'source','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
+                'total_head_m'=>$master['elevation_m'],'source_head_m'=>$master['elevation_m'],'hydraulic_representation'=>'RESERVOIR',
+                'minimum_operating_flow_lps'=>$master['min_flow_lps'],'maximum_withdrawal_lps'=>$master['max_flow_lps'],'base_demand_lps'=>0,
+            ]);
+        }
+        if ($type==='reservoir') {
+            $master=Database::query("SELECT name,elevation_m,length_m,width_m,height_m,initial_water_level_m,minimum_operational_m3,status FROM reservoirs WHERE id=? AND deleted_at IS NULL",[$id])->fetch();
+            if ($master) {
+                $area=max(.01,(float)$master['length_m']*(float)$master['width_m']);
+                return array_replace($node,[
+                    'name'=>$master['name'],'node_type'=>'tank','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
+                    'initial_level_m'=>$master['initial_water_level_m'],'minimum_level_m'=>0,'maximum_level_m'=>$master['height_m'],
+                    'tank_diameter_m'=>2*sqrt($area/M_PI),'minimum_volume_m3'=>$master['minimum_operational_m3'],
+                ]);
+            }
+        }
+        if ($type==='service_area') {
+            $master=Database::query("SELECT name,elevation_m,peak_hour_demand_lps FROM service_areas WHERE id=? AND deleted_at IS NULL",[$id])->fetch();
+            if ($master) return array_replace($node,[
+                'name'=>$master['name'],'node_type'=>'junction','status'=>'aktif','elevation_m'=>$master['elevation_m'],
+                'base_demand_lps'=>$master['peak_hour_demand_lps'],
+            ]);
+        }
+        return $node;
     }
 
     public function validate(array $model): array

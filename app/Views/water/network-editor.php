@@ -72,6 +72,7 @@ $reservoirCount=count(array_filter($nodes,fn($node)=>$node['type']==='reservoir'
         data-can-delete="<?=has_role(['super_admin','administrator'])?'1':'0'?>"
         data-project-id="<?=$project['id']?>"
         data-nodes="<?=e(json_encode($nodes,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES))?>"
+        data-master-nodes="<?=e(json_encode($masterNodes,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES))?>"
         data-routes="<?=e(json_encode($networks,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES))?>">
         <div class="network-column-title source-title">SUMBER AIR</div>
         <div class="network-column-title reservoir-title">RESERVOIR</div>

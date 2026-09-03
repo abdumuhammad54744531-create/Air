@@ -199,8 +199,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(networkBoard){
     const layerToggle=document.querySelector('#networkLayerToggle'),layerOptions=document.querySelector('#networkLayerOptions');
     layerToggle?.addEventListener('click',()=>{const open=layerToggle.getAttribute('aria-expanded')!=='true';layerToggle.setAttribute('aria-expanded',String(open));layerOptions.hidden=!open});
-    const nodes=JSON.parse(networkBoard.dataset.nodes||'[]'),routes=JSON.parse(networkBoard.dataset.routes||'[]');
-    const nodeByKey=Object.fromEntries(nodes.map(node=>[node.key,node])),routeById=Object.fromEntries(routes.map(route=>[String(route.id),route]));
+    const nodes=JSON.parse(networkBoard.dataset.nodes||'[]'),masters=JSON.parse(networkBoard.dataset.masterNodes||'[]'),routes=JSON.parse(networkBoard.dataset.routes||'[]');
+    const nodeByKey=Object.fromEntries(nodes.map(node=>[node.key,node])),masterByKey=Object.fromEntries(masters.map(node=>[node.key,node])),routeById=Object.fromEntries(routes.map(route=>[String(route.id),route]));
     const svg=document.querySelector('#distributionNetworkLines'),inspector=document.querySelector('#networkInspector'),hint=document.querySelector('#networkSelectionHint');
     const modalElement=document.querySelector('#networkRouteModal'),modal=bootstrap.Modal.getOrCreateInstance(modalElement),form=document.querySelector('#networkRouteForm');
     const nodeModalElement=document.querySelector('#networkNodeModal'),nodeModal=bootstrap.Modal.getOrCreateInstance(nodeModalElement),nodeForm=document.querySelector('#networkNodeForm');
@@ -687,8 +687,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.querySelectorAll('[data-node-section]').forEach(block=>block.hidden=block.dataset.nodeSection!==section);
     };
     document.querySelectorAll('#networkNodeTabs [data-property-tab]').forEach(button=>button.addEventListener('click',()=>setNodeSection(button.dataset.propertyTab)));
-    document.querySelector('#networkNodeLinkedKey')?.addEventListener('change',event=>{
-      const master=nodeByKey[event.target.value];if(!master)return;
+    const applyMasterToNodeForm=master=>{
       const setValue=(selector,value)=>{const field=document.querySelector(selector);if(field&&value!==null&&value!==undefined)field.value=value};
       setValue('#networkNodeName',master.name||'');
       setValue('#networkNodeElevation',master.elevation);
@@ -698,10 +697,16 @@ document.addEventListener('DOMContentLoaded',()=>{
         setValue('#networkNodeTotalHead',master.elevation);setValue('#networkSourceHead',master.elevation);
         setValue('#networkMinimumOperatingFlow',master.minimum_flow);setValue('#networkMaximumWithdrawal',master.maximum_flow);
       }else if(master.type==='reservoir'){
-        setValue('#networkTankElevation',master.elevation);setValue('#networkTankInitialLevel',master.initial_volume);
+        setValue('#networkTankElevation',master.elevation);setValue('#networkTankInitialLevel',master.initial_level);
+        setValue('#networkTankMinLevel',0);setValue('#networkTankMaxLevel',master.maximum_level);
+        setValue('#networkTankDiameter',master.tank_diameter);setValue('#networkTankMinVolume',master.minimum_volume);
       }else if(master.type==='service_area'){
         setValue('#networkNodeDemand',master.demand);
       }
+    };
+    document.querySelector('#networkNodeLinkedKey')?.addEventListener('change',event=>{
+      const master=masterByKey[event.target.value];if(!master)return;
+      applyMasterToNodeForm(master);
     });
     const toggleNodeTypeFields=()=>{
       const kind=nodeKindSelect.value;
@@ -716,6 +721,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       Object.entries(values).forEach(([id,value])=>{const field=document.querySelector(`#${id}`);if(field)field.value=value??''});
       const extraValues={networkSourcePattern:node.source_pattern_id,networkPumpStartLevel:node.start_level,networkPumpStopLevel:node.stop_level,networkPumpStartPressure:node.start_pressure,networkPumpStopPressure:node.stop_pressure};
       Object.entries(extraValues).forEach(([id,value])=>{const field=document.querySelector(`#${id}`);if(field)field.value=value??''});
+      const linkedMaster=masterByKey[node.linked_key];if(linkedMaster)applyMasterToNodeForm(linkedMaster);
       document.querySelector('#networkTankOverflow').checked=+node.tank_overflow===1;setNodeSection('basic');toggleNodeTypeFields();document.querySelector('#networkDeleteNode').classList.remove('d-none');nodeModal.show();
     };
     document.querySelector('#networkDeleteNode')?.addEventListener('click',()=>{if(confirm('Hapus titik ini? Semua pipa yang terhubung juga akan diarsipkan.')){document.querySelector('#networkNodeMethod').value='DELETE';nodeForm.submit()}});

@@ -335,6 +335,30 @@ final class DistributionNetworkController
             'status'=>(string)($_POST['node_status']??'aktif'),
             'description'=>trim((string)($_POST['node_description']??'')) ?: null,
         ];
+        // Master adalah sumber kebenaran titik yang ditautkan: nilai teknis tidak boleh berbeda.
+        if ($linkedType==='source') {
+            $master=Database::query("SELECT name,elevation_m,min_flow_lps,normal_flow_lps,max_flow_lps,status FROM water_sources WHERE id=? AND deleted_at IS NULL",[$linkedId])->fetch();
+            $data=array_replace($data,[
+                'name'=>$master['name'],'node_type'=>'source','status'=>$master['status'],
+                'elevation_m'=>$master['elevation_m'],'total_head_m'=>$master['elevation_m'],'source_head_m'=>$master['elevation_m'],
+                'hydraulic_representation'=>'RESERVOIR','minimum_operating_flow_lps'=>$master['min_flow_lps'],
+                'maximum_withdrawal_lps'=>$master['max_flow_lps'],'base_demand_lps'=>0,
+            ]);
+        } elseif ($linkedType==='reservoir') {
+            $master=Database::query("SELECT name,elevation_m,length_m,width_m,height_m,initial_water_level_m,minimum_operational_m3,status FROM reservoirs WHERE id=? AND deleted_at IS NULL",[$linkedId])->fetch();
+            $area=max(.01,(float)$master['length_m']*(float)$master['width_m']);
+            $data=array_replace($data,[
+                'name'=>$master['name'],'node_type'=>'tank','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
+                'initial_level_m'=>$master['initial_water_level_m'],'minimum_level_m'=>0,'maximum_level_m'=>$master['height_m'],
+                'tank_diameter_m'=>2*sqrt($area/M_PI),'minimum_volume_m3'=>$master['minimum_operational_m3'],
+            ]);
+        } elseif ($linkedType==='service_area') {
+            $master=Database::query("SELECT name,elevation_m,peak_hour_demand_lps FROM service_areas WHERE id=? AND deleted_at IS NULL",[$linkedId])->fetch();
+            $data=array_replace($data,[
+                'name'=>$master['name'],'node_type'=>'junction','status'=>'aktif','elevation_m'=>$master['elevation_m'],
+                'base_demand_lps'=>$master['peak_hour_demand_lps'],
+            ]);
+        }
         if (!$data['code'] || !$data['name'] || !in_array($data['node_type'],['junction','source','reservoir','tank','pompa','valve','meter'],true)) {
             flash('danger','Kode, nama, dan jenis titik wajib diisi.');
             redirect('distribution-networks');
@@ -348,7 +372,7 @@ final class DistributionNetworkController
             'meter'=>['meter_parameter','meter_unit'],
         ];
         foreach ($requiredByType[$data['node_type']] ?? [] as $requiredField) {
-            if (!isset($_POST[$requiredField]) || trim((string)$_POST[$requiredField]) === '') {
+            if (!array_key_exists($requiredField,$data) || $data[$requiredField]===null || $data[$requiredField]==='') {
                 flash('danger','Lengkapi semua kolom bertanda bintang untuk jenis titik yang dipilih.');
                 redirect('distribution-networks');
             }
@@ -406,7 +430,7 @@ final class DistributionNetworkController
         // Jangan memakai INNER JOIN ke tabel posisi: master yang belum pernah digeser
         // tetap harus muncul di kanvas dan pada pilihan "Hubungkan dengan Data Master".
         $sources = Database::query("SELECT s.id,s.code,s.name,s.latitude,s.longitude,s.elevation_m,s.min_flow_lps,s.normal_flow_lps,s.max_flow_lps,s.current_sensor_flow_lps,s.status,s.description FROM water_sources s WHERE s.deleted_at IS NULL ORDER BY s.name")->fetchAll();
-        $reservoirs = Database::query("SELECT r.id,r.code,r.name,r.elevation_m,r.effective_capacity_m3,r.initial_volume_m3,r.status,r.description FROM reservoirs r WHERE r.deleted_at IS NULL ORDER BY r.name")->fetchAll();
+        $reservoirs = Database::query("SELECT r.id,r.code,r.name,r.elevation_m,r.length_m,r.width_m,r.height_m,r.effective_capacity_m3,r.initial_volume_m3,r.initial_water_level_m,r.minimum_operational_m3,r.status,r.description FROM reservoirs r WHERE r.deleted_at IS NULL ORDER BY r.name")->fetchAll();
         $areas = Database::query("SELECT a.id,a.code,a.name,a.elevation_m,a.population,a.peak_hour_demand_lps,a.priority,a.description FROM service_areas a WHERE a.deleted_at IS NULL ORDER BY FIELD(a.priority,'sangat_tinggi','tinggi','sedang','rendah'),a.name")->fetchAll();
         $masterNodes=[];
         $this->appendNodes($masterNodes, $sources, 'source', [], 12);
@@ -533,6 +557,10 @@ final class DistributionNetworkController
                 'longitude'=>$type==='source'?($row['longitude']??null):null,
                 'capacity'=>$type==='reservoir'?(float)($row['effective_capacity_m3']??0):null,
                 'initial_volume'=>$type==='reservoir'?(float)($row['initial_volume_m3']??0):null,
+                'initial_level'=>$type==='reservoir'?(float)($row['initial_water_level_m']??0):null,
+                'maximum_level'=>$type==='reservoir'?(float)($row['height_m']??0):null,
+                'minimum_volume'=>$type==='reservoir'?(float)($row['minimum_operational_m3']??0):null,
+                'tank_diameter'=>$type==='reservoir'?2*sqrt(max(.01,(float)($row['length_m']??0)*(float)($row['width_m']??0))/M_PI):null,
                 'population'=>$type==='service_area'?(int)($row['population']??0):null,
                 'demand'=>$type==='service_area'?(float)($row['peak_hour_demand_lps']??0):null,
                 'priority'=>$type==='service_area'?($row['priority']??'sedang'):null,
