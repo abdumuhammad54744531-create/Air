@@ -18,6 +18,14 @@ final class HydraulicNetworkService
         $positionRows=Database::query("SELECT node_type,entity_id,position_x,position_y FROM distribution_node_positions WHERE project_id=?",[$projectId])->fetchAll();
         $positions=[];
         foreach ($positionRows as $position) $positions[$position['node_type'].':'.$position['entity_id']]=[(float)$position['position_x'],(float)$position['position_y']];
+        $networkRows=Database::query("SELECT * FROM distribution_networks WHERE project_id=? AND deleted_at IS NULL",[$projectId])->fetchAll();
+        $connectedMasterKeys=[];
+        foreach ($networkRows as $row) {
+            foreach (['origin','destination'] as $side) {
+                $type=(string)$row[$side.'_type'];
+                if (in_array($type,['source','reservoir','service_area'],true)) $connectedMasterKeys[$type.':'.(int)$row[$side.'_id']]=true;
+            }
+        }
 
         $nodes=[];$engineIds=[];
         $append=function(array $row,string $entityType,string $nodeType,array $extra=[]) use (&$nodes,&$engineIds,$positions): void {
@@ -33,6 +41,8 @@ final class HydraulicNetworkService
         };
 
         foreach (Database::query("SELECT * FROM water_sources WHERE deleted_at IS NULL")->fetchAll() as $row) {
+            // Master yang belum terhubung tetap tampil pada diagram, tetapi bukan bagian model EPANET proyek ini.
+            if (!isset($connectedMasterKeys['source:'.$row['id']])) continue;
             $append($row,'source','reservoir',[
                 'head_m'=>$row['elevation_m']!==null?(float)$row['elevation_m']:null,
                 'minimum_flow_lps'=>(float)$row['min_flow_lps'],'normal_flow_lps'=>(float)$row['normal_flow_lps'],
@@ -41,6 +51,7 @@ final class HydraulicNetworkService
             ]);
         }
         foreach (Database::query("SELECT * FROM reservoirs WHERE deleted_at IS NULL")->fetchAll() as $row) {
+            if (!isset($connectedMasterKeys['reservoir:'.$row['id']])) continue;
             $area=max(.01,(float)$row['length_m']*(float)$row['width_m']);$equivalentDiameter=2*sqrt($area/M_PI);
             $append($row,'reservoir','tank',[
                 'initial_level_m'=>(float)$row['initial_water_level_m'],'minimum_level_m'=>0.0,
@@ -49,6 +60,7 @@ final class HydraulicNetworkService
             ]);
         }
         foreach (Database::query("SELECT * FROM service_areas WHERE deleted_at IS NULL")->fetchAll() as $row) {
+            if (!isset($connectedMasterKeys['service_area:'.$row['id']])) continue;
             $row['status']='aktif';
             $append($row,'service_area','junction',[
                 'base_demand_lps'=>(float)$row['peak_hour_demand_lps'],'demand_pattern_id'=>null,
@@ -81,7 +93,7 @@ final class HydraulicNetworkService
         }
 
         $links=[];
-        foreach (Database::query("SELECT * FROM distribution_networks WHERE project_id=? AND deleted_at IS NULL",[$projectId])->fetchAll() as $row) {
+        foreach ($networkRows as $row) {
             $originKey=$row['origin_type'].':'.$row['origin_id'];$destinationKey=$row['destination_type'].':'.$row['destination_id'];
             $links[]=$row+[
                 'key'=>'link:'.$row['id'],'engine_id'=>$this->engineId('L-'.$row['id'].'-'.$row['route_name']),
