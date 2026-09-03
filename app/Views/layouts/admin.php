@@ -27,5 +27,5 @@
 <div class="user-chip"><span class="avatar"><?=e(strtoupper(substr(user()['name']??'U',0,1)))?></span><span><strong><?=e(user()['name']??'Pengguna')?></strong><small><?=e(str_replace('_',' ',user()['role']??''))?></small></span></div></div></header>
 <main class="content"><?php if($flash):?><div class="alert alert-<?=e($flash['type'])?> alert-dismissible fade show"><i class="bi bi-info-circle me-2"></i><?=e($flash['message'])?><button class="btn-close" data-bs-dismiss="alert"></button></div><?php endif?><?=$content?></main>
 <footer class="app-footer">SIMMA v1.0.0 · Zona waktu Asia/Makassar</footer></div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script src="<?=url('assets/js/app.js')?>?v=3.8.11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script src="<?=url('assets/js/app.js')?>?v=3.8.12"></script>
 </body></html>
