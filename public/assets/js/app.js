@@ -741,7 +741,22 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.querySelectorAll('[data-required-kinds]').forEach(field=>field.required=!usesMaster&&!field.disabled&&field.dataset.requiredKinds.split(' ').includes(kind));
       setNodeSection(activeNodeSection);
     };
-    nodeKindSelect.addEventListener('change',toggleNodeTypeFields);
+    nodeKindSelect.addEventListener('change',()=>{
+      const kind=nodeKindSelect.value,linkedSelect=document.querySelector('#networkNodeLinkedKey'),linkedMaster=masterByKey[linkedSelect?.value||''];
+      const compatibleMasterKinds={source:'source',reservoir:'tank',service_area:'junction'};
+      // Pilihan jenis oleh operator harus menang. Tautan master yang tidak
+      // cocok dilepas agar backend tidak mengubah Reservoir kembali Junction.
+      if(linkedMaster&&compatibleMasterKinds[linkedMaster.type]!==kind)linkedSelect.value='';
+      if(['source','reservoir'].includes(kind)){
+        const head=document.querySelector('#networkNodeTotalHead');
+        if(head&&head.value===''){
+          const oldElevation=document.querySelector('#networkNodeElevation')?.value||document.querySelector('#networkTankElevation')?.value;
+          if(oldElevation!=='')head.value=oldElevation;
+        }
+      }
+      toggleNodeTypeFields();
+      if(['source','reservoir'].includes(kind))setNodeSection('pressure');
+    });
     const openNode=node=>{
       nodeForm.reset();document.querySelector('#networkNodeMethod').value='';document.querySelector('#networkNodeId').value=node.id;
       const values={networkNodeCode:node.code,networkNodeName:node.name,networkNodeKind:node.node_kind||'junction',networkNodeLinkedKey:node.linked_key||'',networkNodeElevation:node.elevation,networkTankElevation:node.elevation,networkNodeDemand:node.base_demand,networkNodeDemandPattern:node.demand_pattern,networkNodeDemandPatternId:node.demand_pattern_id,networkNodeInitialPressure:node.initial_pressure,networkNodeMinPressure:node.minimum_pressure,networkRequiredPressure:node.required_pressure,networkNodeMaxPressure:node.maximum_pressure,networkPressureExponent:node.pressure_exponent||.5,networkMeasuredPressure:node.measured_pressure,networkPressureMeasuredAt:node.pressure_measured_at?String(node.pressure_measured_at).replace(' ','T').slice(0,16):'',networkDemandCategory:node.demand_category,networkNodeEmitter:node.emitter_coefficient,networkNodeInitialQuality:node.initial_quality,networkNodeSourceQuality:node.source_quality,networkNodeTotalHead:node.total_head,networkNodeHeadPattern:node.head_pattern,networkTankInitialLevel:node.initial_level,networkTankMinLevel:node.minimum_level,networkTankMaxLevel:node.maximum_level,networkTankDiameter:node.tank_diameter,networkTankMinVolume:node.minimum_volume,networkTankVolumeCurve:node.volume_curve,networkTankMixing:node.mixing_model||'mixed',networkHydraulicRepresentation:node.hydraulic_representation,networkSourceHead:node.source_head,networkStaticLevel:node.static_water_level,networkDynamicLevel:node.dynamic_water_level,networkMaximumWithdrawal:node.maximum_withdrawal,networkMinimumOperatingFlow:node.minimum_operating_flow,networkConnectedPump:node.connected_pump_node_id,networkPumpCurveNode:node.pump_curve,networkPumpCurveIdNode:node.pump_curve_id,networkPumpEfficiencyCurve:node.efficiency_curve_id,networkPumpPowerNode:node.pump_power,networkNominalPowerNode:node.nominal_power,networkPumpSpeedNode:node.pump_speed||1,networkPumpPatternNode:node.speed_pattern,networkPumpInlet:node.inlet_node_id,networkPumpOutlet:node.outlet_node_id,networkPumpUnitCount:node.unit_count||1,networkPumpActiveUnitCount:node.active_unit_count??1,networkPumpInitialStatus:node.initial_status||'OPEN',networkPumpControlMode:node.control_mode||'MANUAL',networkPumpSchedule:node.operating_schedule_id,networkValveType:node.valve_type,networkValveSetting:node.valve_setting,networkMeterParameter:node.meter_parameter,networkMeterUnit:node.meter_unit,networkMeterTargetType:node.meter_target_type,networkMeterTargetId:node.meter_target_id,networkMeterSensor:node.meter_sensor_id,networkMeterCurrentValue:node.meter_current_value,networkMeterCalibratedValue:node.meter_calibrated_value,networkMeterCalibrationFactor:node.meter_calibration_factor||1,networkMeterMinimumLimit:node.meter_minimum_limit,networkMeterMaximumLimit:node.meter_maximum_limit,networkMeterMeasuredAt:node.meter_measured_at?String(node.meter_measured_at).replace(' ','T').slice(0,16):'',networkCommunicationStatus:node.communication_status,networkNodeStatus:node.status||'aktif',networkNodeDescription:node.description||''};

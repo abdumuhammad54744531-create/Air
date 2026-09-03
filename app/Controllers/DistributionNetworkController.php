@@ -240,7 +240,8 @@ final class DistributionNetworkController
         verify_csrf();
         $project=$this->currentProject();
         $id = (int)($_POST['node_id']??0);
-        if (!$id || !Database::query("SELECT id FROM distribution_nodes WHERE id=? AND project_id=? AND deleted_at IS NULL",[$id,$project['id']])->fetchColumn()) {
+        $existingNode=$id?Database::query("SELECT * FROM distribution_nodes WHERE id=? AND project_id=? AND deleted_at IS NULL",[$id,$project['id']])->fetch():false;
+        if (!$id || !$existingNode) {
             flash('danger','Titik jaringan tidak ditemukan.');
             redirect('distribution-networks');
         }
@@ -250,11 +251,22 @@ final class DistributionNetworkController
         }
         $linkedKey = trim((string)($_POST['linked_key']??''));
         $linkedType = null;$linkedId = null;
+        $postedNodeType=(string)($_POST['node_type']??'junction');
+        $detachedIncompatibleMaster=false;
         if ($linkedKey && str_contains($linkedKey,':')) {
             [$candidateType,$candidateId] = explode(':',$linkedKey,2);
             if (in_array($candidateType,['source','reservoir','service_area'],true) && $this->entityExists($candidateType,(int)$candidateId)) {
                 $linkedType=$candidateType;$linkedId=(int)$candidateId;
             }
+        }
+        // Data master menentukan jenis hidraulika hanya selama jenis titiknya
+        // masih sesuai. Ketika operator sengaja mengubah Junction menjadi
+        // Reservoir, jangan paksa titik kembali menjadi Junction.
+        $masterNodeTypes=['source'=>'source','reservoir'=>'tank','service_area'=>'junction'];
+        if ($linkedType && ($masterNodeTypes[$linkedType]??null)!==$postedNodeType) {
+            $linkedType=null;
+            $linkedId=null;
+            $detachedIncompatibleMaster=true;
         }
         $demandPatternId=(int)($_POST['demand_pattern_id']??0);
         $demandPatternCode=$demandPatternId?(Database::query("SELECT code FROM demand_patterns WHERE id=? AND deleted_at IS NULL AND status='aktif'",[$demandPatternId])->fetchColumn()?:null):null;
@@ -263,7 +275,7 @@ final class DistributionNetworkController
         $data = [
             'code'=>trim((string)($_POST['code']??'')),
             'name'=>trim((string)($_POST['name']??'')),
-            'node_type'=>(string)($_POST['node_type']??'junction'),
+            'node_type'=>$postedNodeType,
             'linked_type'=>$linkedType,
             'linked_id'=>$linkedId,
             'elevation_m'=>$this->number('elevation_m',true),
@@ -335,6 +347,11 @@ final class DistributionNetworkController
             'status'=>(string)($_POST['node_status']??'aktif'),
             'description'=>trim((string)($_POST['node_description']??'')) ?: null,
         ];
+        // Saat Junction diubah menjadi sumber/head tetap, elevasi lama adalah
+        // nilai awal yang aman untuk total head dan tetap dapat diedit lagi.
+        if (in_array($data['node_type'],['source','reservoir'],true) && trim((string)($_POST['total_head_m']??''))==='') {
+            $data['total_head_m']=$existingNode['total_head_m'] ?? $existingNode['source_head_m'] ?? $existingNode['elevation_m'];
+        }
         // Master adalah sumber kebenaran titik yang ditautkan: nilai teknis tidak boleh berbeda.
         if ($linkedType==='source') {
             $master=Database::query("SELECT name,elevation_m,min_flow_lps,normal_flow_lps,max_flow_lps,status FROM water_sources WHERE id=? AND deleted_at IS NULL",[$linkedId])->fetch();
@@ -404,11 +421,11 @@ final class DistributionNetworkController
             redirect('distribution-networks');
         }
         try {
-            $before = Database::query("SELECT * FROM distribution_nodes WHERE id=? AND project_id=?",[$id,$project['id']])->fetch();
+            $before = $existingNode;
             $sets=implode(',',array_map(fn($field)=>"`$field`=?",array_keys($data)));
             Database::query("UPDATE distribution_nodes SET $sets,updated_at=NOW() WHERE id=? AND project_id=?",[...array_values($data),$id,$project['id']]);
             activity('edit','distribution-nodes',$id,$before,$data);
-            flash('success','Data titik jaringan berhasil diperbarui tanpa mengubah sambungan pipa.');
+            flash('success','Data titik jaringan berhasil diperbarui tanpa mengubah sambungan pipa.'.($detachedIncompatibleMaster?' Tautan data master lama dilepas karena jenis titik berubah.':''));
         } catch (PDOException $e) {
             flash('danger',str_contains($e->getMessage(),'Duplicate')?'Kode titik sudah digunakan.':'Data titik tidak dapat disimpan.');
         }
