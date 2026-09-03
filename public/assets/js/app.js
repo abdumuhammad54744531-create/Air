@@ -692,6 +692,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       const setValue=(selector,value)=>{const field=document.querySelector(selector);if(field&&value!==null&&value!==undefined)field.value=value};
       setValue('#networkNodeName',master.name||'');
       setValue('#networkNodeElevation',master.elevation);
+      const masterKinds={source:'source',reservoir:'tank',service_area:'junction'};
+      if(masterKinds[master.type]){nodeKindSelect.value=masterKinds[master.type];toggleNodeTypeFields()}
       if(master.type==='source'){
         setValue('#networkNodeTotalHead',master.elevation);setValue('#networkSourceHead',master.elevation);
         setValue('#networkMinimumOperatingFlow',master.minimum_flow);setValue('#networkMaximumWithdrawal',master.maximum_flow);

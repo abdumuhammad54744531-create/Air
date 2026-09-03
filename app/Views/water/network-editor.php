@@ -2,9 +2,9 @@
 $typeLabels=['source'=>'Sumber Air','reservoir'=>'Reservoir','service_area'=>'Wilayah Layanan','node'=>'Titik Manual'];
 $typeIcons=['source'=>'bi-droplet-fill','reservoir'=>'bi-box-fill','service_area'=>'bi-houses-fill','node'=>'bi-circle-fill'];
 $manualKindIcons=['junction'=>'bi-circle-fill','source'=>'bi-droplet-fill','reservoir'=>'bi-box-fill','tank'=>'bi-database-fill','pompa'=>'bi-gear-wide-connected','valve'=>'bi-hourglass-split','meter'=>'bi-speedometer2'];
-$originNodes=array_values(array_filter($nodes,fn($node)=>in_array($node['type'],['source','reservoir','node'],true)));
-$destinationNodes=array_values(array_filter($nodes,fn($node)=>in_array($node['type'],['reservoir','service_area','node'],true)));
-$masterNodes=array_values(array_filter($nodes,fn($node)=>$node['type']!=='node'));
+$originNodes=$nodes;
+$destinationNodes=$nodes;
+$masterNodes=$masterNodes??[];
 $pumpCount=count(array_filter($networks,fn($link)=>strtoupper((string)($link['link_type']??'PIPE'))==='PUMP'));
 $reservoirCount=count(array_filter($nodes,fn($node)=>$node['type']==='reservoir'||($node['node_kind']??'')==='tank'));
 ?>

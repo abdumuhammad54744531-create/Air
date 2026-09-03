@@ -18,13 +18,14 @@ final class HydraulicNetworkService
         $positionRows=Database::query("SELECT node_type,entity_id,position_x,position_y FROM distribution_node_positions WHERE project_id=?",[$projectId])->fetchAll();
         $positions=[];
         foreach ($positionRows as $position) $positions[$position['node_type'].':'.$position['entity_id']]=[(float)$position['position_x'],(float)$position['position_y']];
-        $networkRows=Database::query("SELECT * FROM distribution_networks WHERE project_id=? AND deleted_at IS NULL",[$projectId])->fetchAll();
-        $connectedMasterKeys=[];
+        $networkRows=array_values(array_filter(
+            Database::query("SELECT * FROM distribution_networks WHERE project_id=? AND deleted_at IS NULL",[$projectId])->fetchAll(),
+            fn(array $row)=>$row['origin_type']==='node' && $row['destination_type']==='node'
+        ));
+        $connectedNodeKeys=[];
         foreach ($networkRows as $row) {
-            foreach (['origin','destination'] as $side) {
-                $type=(string)$row[$side.'_type'];
-                if (in_array($type,['source','reservoir','service_area'],true)) $connectedMasterKeys[$type.':'.(int)$row[$side.'_id']]=true;
-            }
+            $connectedNodeKeys['node:'.(int)$row['origin_id']]=true;
+            $connectedNodeKeys['node:'.(int)$row['destination_id']]=true;
         }
 
         $nodes=[];$engineIds=[];
@@ -40,34 +41,8 @@ final class HydraulicNetworkService
             ],$extra);
         };
 
-        foreach (Database::query("SELECT * FROM water_sources WHERE deleted_at IS NULL")->fetchAll() as $row) {
-            // Master yang belum terhubung tetap tampil pada diagram, tetapi bukan bagian model EPANET proyek ini.
-            if (!isset($connectedMasterKeys['source:'.$row['id']])) continue;
-            $append($row,'source','reservoir',[
-                'head_m'=>$row['elevation_m']!==null?(float)$row['elevation_m']:null,
-                'minimum_flow_lps'=>(float)$row['min_flow_lps'],'normal_flow_lps'=>(float)$row['normal_flow_lps'],
-                'maximum_flow_lps'=>(float)$row['max_flow_lps'],'sensor_flow_lps'=>$row['current_sensor_flow_lps']!==null?(float)$row['current_sensor_flow_lps']:null,
-                'hydraulic_representation'=>'RESERVOIR','maximum_withdrawal_lps'=>(float)$row['max_flow_lps'],
-            ]);
-        }
-        foreach (Database::query("SELECT * FROM reservoirs WHERE deleted_at IS NULL")->fetchAll() as $row) {
-            if (!isset($connectedMasterKeys['reservoir:'.$row['id']])) continue;
-            $area=max(.01,(float)$row['length_m']*(float)$row['width_m']);$equivalentDiameter=2*sqrt($area/M_PI);
-            $append($row,'reservoir','tank',[
-                'initial_level_m'=>(float)$row['initial_water_level_m'],'minimum_level_m'=>0.0,
-                'maximum_level_m'=>(float)$row['height_m'],'tank_diameter_m'=>$equivalentDiameter,
-                'minimum_volume_m3'=>(float)$row['minimum_operational_m3'],'tank_overflow'=>0,
-            ]);
-        }
-        foreach (Database::query("SELECT * FROM service_areas WHERE deleted_at IS NULL")->fetchAll() as $row) {
-            if (!isset($connectedMasterKeys['service_area:'.$row['id']])) continue;
-            $row['status']='aktif';
-            $append($row,'service_area','junction',[
-                'base_demand_lps'=>(float)$row['peak_hour_demand_lps'],'demand_pattern_id'=>null,
-                'minimum_pressure_m'=>null,'required_pressure_m'=>null,'pressure_exponent'=>.5,
-            ]);
-        }
         foreach (Database::query("SELECT * FROM distribution_nodes WHERE project_id=? AND deleted_at IS NULL",[$projectId])->fetchAll() as $row) {
+            if (!isset($connectedNodeKeys['node:'.$row['id']])) continue;
             $append($row,'node',(string)$row['node_type'],[
                 'base_demand_lps'=>(float)$row['base_demand_lps'],'demand_pattern_id'=>$row['demand_pattern_id'],
                 'emitter_coefficient'=>(float)$row['emitter_coefficient'],'initial_quality'=>(float)$row['initial_quality'],

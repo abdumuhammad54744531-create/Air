@@ -92,9 +92,8 @@ final class DistributionNetworkController
         [$originType,$originId] = explode(':',$originKey,2);
         [$destinationType,$destinationId] = explode(':',$destinationKey,2);
         $originId=(int)$originId;$destinationId=(int)$destinationId;
-        $validDirection = in_array($originType,['source','reservoir','node'],true)
-            && in_array($destinationType,['reservoir','service_area','node'],true)
-            && !($originType===$destinationType && $originId===$destinationId);
+        $validDirection = $originType==='node' && $destinationType==='node'
+            && !($originId===$destinationId);
         if (!$validDirection || !$this->entityExists($originType,$originId) || !$this->entityExists($destinationType,$destinationId)) {
             json_response(['success'=>false,'message'=>'Arah pipa atau titik jaringan tidak valid.'],422);
         }
@@ -401,6 +400,7 @@ final class DistributionNetworkController
             $positions[$position['node_type'].':'.$position['entity_id']] = [(float)$position['position_x'],(float)$position['position_y']];
         }
 
+        // Data master dipilih dari formulir titik. Kanvas hanya menampilkan titik jaringan proyek.
         $nodes = [];
         // Posisi diagram bersifat khusus proyek, sedangkan data master bersifat global.
         // Jangan memakai INNER JOIN ke tabel posisi: master yang belum pernah digeser
@@ -408,9 +408,10 @@ final class DistributionNetworkController
         $sources = Database::query("SELECT s.id,s.code,s.name,s.latitude,s.longitude,s.elevation_m,s.min_flow_lps,s.normal_flow_lps,s.max_flow_lps,s.current_sensor_flow_lps,s.status,s.description FROM water_sources s WHERE s.deleted_at IS NULL ORDER BY s.name")->fetchAll();
         $reservoirs = Database::query("SELECT r.id,r.code,r.name,r.elevation_m,r.effective_capacity_m3,r.initial_volume_m3,r.status,r.description FROM reservoirs r WHERE r.deleted_at IS NULL ORDER BY r.name")->fetchAll();
         $areas = Database::query("SELECT a.id,a.code,a.name,a.elevation_m,a.population,a.peak_hour_demand_lps,a.priority,a.description FROM service_areas a WHERE a.deleted_at IS NULL ORDER BY FIELD(a.priority,'sangat_tinggi','tinggi','sedang','rendah'),a.name")->fetchAll();
-        $this->appendNodes($nodes, $sources, 'source', $positions, 12);
-        $this->appendNodes($nodes, $reservoirs, 'reservoir', $positions, 48);
-        $this->appendNodes($nodes, $areas, 'service_area', $positions, 84);
+        $masterNodes=[];
+        $this->appendNodes($masterNodes, $sources, 'source', [], 12);
+        $this->appendNodes($masterNodes, $reservoirs, 'reservoir', [], 48);
+        $this->appendNodes($masterNodes, $areas, 'service_area', [], 84);
         $manualNodes = Database::query("SELECT * FROM distribution_nodes WHERE project_id=? AND deleted_at IS NULL ORDER BY id",[$project['id']])->fetchAll();
         foreach ($manualNodes as $index=>$row) {
             $key='node:'.$row['id'];
@@ -461,6 +462,7 @@ final class DistributionNetworkController
         foreach ($networkRows as $row) {
             $originKey = $row['origin_type'].':'.$row['origin_id'];
             $destinationKey = $row['destination_type'].':'.$row['destination_id'];
+            if ($row['origin_type']!=='node' || $row['destination_type']!=='node') continue;
             if (!isset($nodeIndex[$originKey], $nodeIndex[$destinationKey])) continue;
             $row['origin_key'] = $originKey;
             $row['destination_key'] = $destinationKey;
@@ -492,6 +494,7 @@ final class DistributionNetworkController
         view('water/network-editor',[
             'title'=>'Jaringan Distribusi',
             'nodes'=>$nodes,
+            'masterNodes'=>$masterNodes,
             'networks'=>$networks,
             'stats'=>$stats,
             'demandPatterns'=>$demandPatterns,
@@ -604,8 +607,8 @@ final class DistributionNetworkController
             flash('danger','Nama link serta titik asal dan tujuan wajib diisi.');
             redirect('distribution-networks');
         }
-        if (!in_array($data['origin_type'],['source','reservoir','node'],true) || !in_array($data['destination_type'],['reservoir','service_area','node'],true)) {
-            flash('danger','Arah jaringan harus berasal dan berakhir pada titik jaringan yang valid.');
+        if ($data['origin_type']!=='node' || $data['destination_type']!=='node') {
+            flash('danger','Pipa hanya dapat menghubungkan Titik Jaringan. Tambahkan titik dan pilih data master pada titik tersebut terlebih dahulu.');
             redirect('distribution-networks');
         }
         if (!$this->entityExists($data['origin_type'],$data['origin_id']) || !$this->entityExists($data['destination_type'],$data['destination_id'])) {
@@ -809,8 +812,8 @@ final class DistributionNetworkController
             'geometric_length_m','max_velocity_mps','max_unit_headloss_m_per_km','nominal_power_kw','relative_speed',
             'start_level_m','stop_level_m','start_pressure_m','stop_pressure_m','valve_setting'];
         $spec=[
-            'route_name'=>'required','origin_type'=>['source','reservoir','node'],'origin_id'=>'int-zero',
-            'destination_type'=>['reservoir','service_area','node'],'destination_id'=>'int-zero',
+            'route_name'=>'required','origin_type'=>['node'],'origin_id'=>'int-zero',
+            'destination_type'=>['node'],'destination_id'=>'int-zero',
             'pipe_type'=>'text-null','check_valve'=>'bool','pump_status'=>'text-null','flow_priority'=>'int-zero',
             'status'=>['aktif','tidak_aktif','perawatan'],'description'=>'text-null','link_type'=>['PIPE','PUMP','VALVE'],
             'use_manual_length'=>'bool','material_code'=>'text-null','installation_year'=>'int-null',
