@@ -705,13 +705,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
     };
     document.querySelector('#networkNodeLinkedKey')?.addEventListener('change',event=>{
-      const master=masterByKey[event.target.value];if(!master)return;
+      const master=masterByKey[event.target.value];if(!master){toggleNodeTypeFields();return}
       applyMasterToNodeForm(master);
     });
     const toggleNodeTypeFields=()=>{
       const kind=nodeKindSelect.value;
+      const usesMaster=!!masterByKey[document.querySelector('#networkNodeLinkedKey')?.value||''];
       document.querySelectorAll('[data-node-kinds]').forEach(section=>{const visible=section.dataset.nodeKinds.split(' ').includes(kind);section.classList.toggle('d-none',!visible);section.querySelectorAll('input,select,textarea').forEach(field=>field.disabled=!visible)});
-      document.querySelectorAll('[data-required-kinds]').forEach(field=>field.required=!field.disabled&&field.dataset.requiredKinds.split(' ').includes(kind));
+      document.querySelectorAll('[data-required-kinds]').forEach(field=>field.required=!usesMaster&&!field.disabled&&field.dataset.requiredKinds.split(' ').includes(kind));
       setNodeSection(activeNodeSection);
     };
     nodeKindSelect.addEventListener('change',toggleNodeTypeFields);
