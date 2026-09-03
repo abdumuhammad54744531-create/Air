@@ -436,8 +436,11 @@ final class DistributionNetworkController
         $this->appendNodes($masterNodes, $sources, 'source', [], 12);
         $this->appendNodes($masterNodes, $reservoirs, 'reservoir', [], 48);
         $this->appendNodes($masterNodes, $areas, 'service_area', [], 84);
+        $mastersByKey=[];
+        foreach ($masterNodes as $master) $mastersByKey[$master['key']]=$master;
         $manualNodes = Database::query("SELECT * FROM distribution_nodes WHERE project_id=? AND deleted_at IS NULL ORDER BY id",[$project['id']])->fetchAll();
         foreach ($manualNodes as $index=>$row) {
+            $row=$this->synchronizeLinkedMasterRow($row,$mastersByKey);
             $key='node:'.$row['id'];
             [$x,$y]=$positions[$key]??[50,50];
             $nodes[]=[
@@ -568,6 +571,29 @@ final class DistributionNetworkController
                 'edit_url'=>url(match($type){'source'=>'water-sources','reservoir'=>'reservoirs',default=>'service-areas'}.'/'.$row['id']),
             ];
         }
+    }
+
+    /** Tampilan titik selalu mengikuti data master terbaru tanpa menunggu titik disimpan ulang. */
+    private function synchronizeLinkedMasterRow(array $node, array $mastersByKey): array
+    {
+        $key=($node['linked_type']??null)&&($node['linked_id']??null)?$node['linked_type'].':'.$node['linked_id']:null;
+        $master=$key?$mastersByKey[$key]??null:null;
+        if (!$master) return $node;
+        if ($master['type']==='source') return array_replace($node,[
+            'name'=>$master['name'],'node_type'=>'source','status'=>$master['status'],'elevation_m'=>$master['elevation'],
+            'total_head_m'=>$master['elevation'],'source_head_m'=>$master['elevation'],'hydraulic_representation'=>'RESERVOIR',
+            'minimum_operating_flow_lps'=>$master['minimum_flow'],'maximum_withdrawal_lps'=>$master['maximum_flow'],'base_demand_lps'=>0,
+        ]);
+        if ($master['type']==='reservoir') return array_replace($node,[
+            'name'=>$master['name'],'node_type'=>'tank','status'=>$master['status'],'elevation_m'=>$master['elevation'],
+            'initial_level_m'=>$master['initial_level'],'minimum_level_m'=>0,'maximum_level_m'=>$master['maximum_level'],
+            'tank_diameter_m'=>$master['tank_diameter'],'minimum_volume_m3'=>$master['minimum_volume'],
+        ]);
+        if ($master['type']==='service_area') return array_replace($node,[
+            'name'=>$master['name'],'node_type'=>'junction','status'=>'aktif','elevation_m'=>$master['elevation'],
+            'base_demand_lps'=>$master['demand'],
+        ]);
+        return $node;
     }
 
     private function store(): void
