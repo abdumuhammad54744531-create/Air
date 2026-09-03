@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const drawRoutes=()=>{
       [...svg.querySelectorAll('.network-route-shape')].forEach(element=>element.remove());
       const namespace='http://www.w3.org/2000/svg';
-      const pairTotals={},pairIndexes={};
+      const pairTotals={},pairIndexes={},labelOffsets=[50,68,32,82,18];let labelPlacementIndex=0;
       routes.forEach(route=>{const pair=[route.origin_key,route.destination_key].sort().join('|');pairTotals[pair]=(pairTotals[pair]||0)+1});
       routes.forEach(route=>{
         const origin=nodeByKey[route.origin_key],destination=nodeByKey[route.destination_key];if(!origin||!destination)return;
@@ -476,10 +476,10 @@ document.addEventListener('DOMContentLoaded',()=>{
         if(result&&outputState['link-status'])labelParts.push(`engine ${result.status}`);
         if(result&&outputState['color-velocity'])group.classList.add(isPump?(pumpRunning?'output-good':'output-off'):(result.velocity_mps>3?'output-critical':result.velocity_mps>2?'output-warning':'output-good'));
         const outputTextScale=result?outputDisplaySettings.fontScale/100:1,outputLabelMultiplier=result?outputDisplaySettings.labelScale/100:1;
-        const labelRows=[],fontSize=11*displaySettings.fontScale/100*outputTextScale;
+        const labelRows=[],fontSize=11*displaySettings.fontScale/100*outputTextScale,labelOffset=labelOffsets[labelPlacementIndex++%labelOffsets.length];
         for(let rowIndex=0;rowIndex<labelParts.length;rowIndex+=3){
           const label=document.createElementNS(namespace,'text');label.setAttribute('class','network-route-label');label.setAttribute('dy',String((-15-(rowIndex/3)*(fontSize+6))*outputLabelMultiplier));label.style.fontSize=`${fontSize}px`;
-          const textPath=document.createElementNS(namespace,'textPath');textPath.setAttribute('href',`#networkRouteLabelPath${route.id}`);textPath.setAttribute('startOffset','50%');textPath.setAttribute('text-anchor','middle');textPath.textContent=labelParts.slice(rowIndex,rowIndex+3).join(' · ');label.append(textPath);labelRows.push(label);
+          const textPath=document.createElementNS(namespace,'textPath');textPath.setAttribute('href',`#networkRouteLabelPath${route.id}`);textPath.setAttribute('startOffset',`${labelOffset}%`);textPath.setAttribute('text-anchor','middle');textPath.textContent=labelParts.slice(rowIndex,rowIndex+3).join(' · ');label.append(textPath);labelRows.push(label);
         }
         const title=document.createElementNS(namespace,'title');title.textContent=`${route.route_name}: ${route.origin_name} → ${route.destination_name}, ${formatWaterNumber(route.pipe_length_m)} m, Ø ${formatWaterNumber(route.pipe_diameter_mm)} mm, ${formatWaterNumber(route.planned_flow_lps)} L/s`;
         const showRouteFromLine=event=>{event.stopPropagation();showRouteInspector(route)};
