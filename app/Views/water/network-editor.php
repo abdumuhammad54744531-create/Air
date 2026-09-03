@@ -116,6 +116,16 @@ $reservoirCount=count(array_filter($nodes,fn($node)=>$node['type']==='reservoir'
         <span><i class="bi bi-layers"></i></span><div><h3>Tampilan Diagram</h3><p>Tekan untuk memilih informasi yang ditampilkan.</p></div><i class="bi bi-chevron-down network-layer-chevron"></i>
       </button>
       <div class="network-layer-options" id="networkLayerOptions" hidden>
+      <div class="network-layer-group network-color-group"><strong>Warna Simbol</strong>
+        <p class="network-color-help">Atur warna tampilan diagram. Perubahan disimpan khusus untuk proyek ini pada perangkat Anda.</p>
+        <div class="network-color-controls">
+          <label for="networkColorSource"><input type="color" id="networkColorSource" value="#0b82d8"> Mata Air</label>
+          <label for="networkColorReservoir"><input type="color" id="networkColorReservoir" value="#7042c0"> Reservoir</label>
+          <label for="networkColorServiceArea"><input type="color" id="networkColorServiceArea" value="#0a9164"> Wilayah Layanan</label>
+          <label for="networkColorNode"><input type="color" id="networkColorNode" value="#e48a0a"> Titik Manual</label>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="networkResetColors"><i class="bi bi-arrow-counterclockwise"></i> Warna awal</button>
+      </div>
        <div class="network-layer-group"><strong>Label Titik</strong>
         <label><input type="checkbox" data-network-layer="node-name" checked> Nama titik</label>
         <label><input type="checkbox" data-network-layer="node-code" checked> Kode titik</label>

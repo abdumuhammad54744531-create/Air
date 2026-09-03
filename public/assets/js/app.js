@@ -371,6 +371,32 @@ document.addEventListener('DOMContentLoaded',()=>{
     let savedLayers={};try{savedLayers=JSON.parse(localStorage.getItem(projectStorageKey('simma-network-layers'))||'{}')}catch(error){}
     layerInputs.forEach(input=>{if(Object.hasOwn(savedLayers,input.dataset.networkLayer))input.checked=!!savedLayers[input.dataset.networkLayer];layerState[input.dataset.networkLayer]=input.checked});
     const applyNodeLayers=()=>['node-name','node-code','node-kind','node-elevation','node-demand','node-description'].forEach(layer=>networkBoard.classList.toggle(`show-${layer}`,!!layerState[layer]));
+    const colorInputs={
+      source:document.querySelector('#networkColorSource'),reservoir:document.querySelector('#networkColorReservoir'),
+      serviceArea:document.querySelector('#networkColorServiceArea'),node:document.querySelector('#networkColorNode')
+    };
+    const defaultColors={source:'#0b82d8',reservoir:'#7042c0',serviceArea:'#0a9164',node:'#e48a0a'};
+    let nodeColors={...defaultColors};
+    try{nodeColors={...nodeColors,...JSON.parse(localStorage.getItem(projectStorageKey('simma-network-node-colors'))||'{}')}}catch(error){}
+    const validColor=value=>/^#[0-9a-f]{6}$/i.test(String(value))?String(value):null;
+    const colorMix=(hex,target,amount)=>{
+      const base=validColor(hex)||'#0b82d8',value=parseInt(base.slice(1),16),ratio=Math.max(0,Math.min(1,amount));
+      const part=shift=>Math.round(((value>>shift)&255)*(1-ratio)+target*ratio).toString(16).padStart(2,'0');
+      return `#${part(16)}${part(8)}${part(0)}`;
+    };
+    const applyNodeColors=()=>{
+      Object.entries(nodeColors).forEach(([key,value])=>{
+        const color=validColor(value)||defaultColors[key];
+        const cssKey=key.replace(/[A-Z]/g,letter=>`-${letter.toLowerCase()}`);
+        networkBoard.style.setProperty(`--network-${cssKey}-color`,color);
+        networkBoard.style.setProperty(`--network-${cssKey}-light`,colorMix(color,255,.88));
+        networkBoard.style.setProperty(`--network-${cssKey}-dark`,colorMix(color,0,.28));
+        if(colorInputs[key])colorInputs[key].value=color;
+      });
+    };
+    const persistNodeColors=()=>localStorage.setItem(projectStorageKey('simma-network-node-colors'),JSON.stringify(nodeColors));
+    Object.entries(colorInputs).forEach(([key,input])=>input?.addEventListener('input',()=>{nodeColors[key]=input.value;persistNodeColors();applyNodeColors()}));
+    document.querySelector('#networkResetColors')?.addEventListener('click',()=>{nodeColors={...defaultColors};persistNodeColors();applyNodeColors()});
     const fontScaleInput=document.querySelector('#networkFontScale'),fontScaleOutput=document.querySelector('#networkFontScaleValue');
     const arrowDirectionInput=document.querySelector('#networkArrowDirection'),arrowDirectionOutput=document.querySelector('#networkArrowDirectionValue');
     const arrowScaleInput=document.querySelector('#networkArrowScale'),arrowScaleOutput=document.querySelector('#networkArrowScaleValue');
@@ -462,7 +488,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         group.append(labelGuide,hit,path,...pumpMarker,...labelRows,title);hit.addEventListener('click',showRouteFromLine);path.addEventListener('click',showRouteFromLine);hit.addEventListener('dblclick',editRouteFromLine);path.addEventListener('dblclick',editRouteFromLine);svg.append(group);
       });
     };
-    applyNodeLayers();applyDisplaySettings();
+    applyNodeLayers();applyNodeColors();applyDisplaySettings();
     layerInputs.forEach(input=>input.addEventListener('change',()=>{layerState[input.dataset.networkLayer]=input.checked;localStorage.setItem(projectStorageKey('simma-network-layers'),JSON.stringify(layerState));applyNodeLayers();drawRoutes()}));
     fontScaleInput?.addEventListener('input',()=>{displaySettings.fontScale=+fontScaleInput.value;persistDisplaySettings();applyDisplaySettings();drawRoutes()});
     arrowDirectionInput?.addEventListener('input',()=>{displaySettings.arrowDirection=+arrowDirectionInput.value;persistDisplaySettings();applyDisplaySettings();drawRoutes()});
