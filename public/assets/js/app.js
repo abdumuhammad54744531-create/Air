@@ -717,12 +717,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       const setValue=(selector,value)=>{const field=document.querySelector(selector);if(field&&value!==null&&value!==undefined)field.value=value};
       setValue('#networkNodeName',master.name||'');
       setValue('#networkNodeElevation',master.elevation);
-      const masterKinds={source:'source',reservoir:'tank',service_area:'junction'};
+      const masterKinds={source:'source',reservoir:'reservoir',service_area:'junction'};
       if(masterKinds[master.type]){nodeKindSelect.value=masterKinds[master.type];toggleNodeTypeFields()}
       if(master.type==='source'){
         setValue('#networkNodeTotalHead',master.elevation);setValue('#networkSourceHead',master.elevation);
         setValue('#networkMinimumOperatingFlow',master.minimum_flow);setValue('#networkMaximumWithdrawal',master.maximum_flow);
       }else if(master.type==='reservoir'){
+        setValue('#networkNodeTotalHead',Number(master.elevation||0)+Number(master.initial_level||0));
         setValue('#networkTankElevation',master.elevation);setValue('#networkTankInitialLevel',master.initial_level);
         setValue('#networkTankMinLevel',0);setValue('#networkTankMaxLevel',master.maximum_level);
         setValue('#networkTankDiameter',master.tank_diameter);setValue('#networkTankMinVolume',master.minimum_volume);
@@ -743,7 +744,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     nodeKindSelect.addEventListener('change',()=>{
       const kind=nodeKindSelect.value,linkedSelect=document.querySelector('#networkNodeLinkedKey'),linkedMaster=masterByKey[linkedSelect?.value||''];
-      const compatibleMasterKinds={source:'source',reservoir:'tank',service_area:'junction'};
+      const compatibleMasterKinds={source:'source',reservoir:'reservoir',service_area:'junction'};
       // Pilihan jenis oleh operator harus menang. Tautan master yang tidak
       // cocok dilepas agar backend tidak mengubah Reservoir kembali Junction.
       if(linkedMaster&&compatibleMasterKinds[linkedMaster.type]!==kind)linkedSelect.value='';

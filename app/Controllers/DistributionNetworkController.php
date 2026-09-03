@@ -262,7 +262,7 @@ final class DistributionNetworkController
         // Data master menentukan jenis hidraulika hanya selama jenis titiknya
         // masih sesuai. Ketika operator sengaja mengubah Junction menjadi
         // Reservoir, jangan paksa titik kembali menjadi Junction.
-        $masterNodeTypes=['source'=>'source','reservoir'=>'tank','service_area'=>'junction'];
+        $masterNodeTypes=['source'=>'source','reservoir'=>'reservoir','service_area'=>'junction'];
         if ($linkedType && ($masterNodeTypes[$linkedType]??null)!==$postedNodeType) {
             $linkedType=null;
             $linkedId=null;
@@ -408,10 +408,13 @@ final class DistributionNetworkController
         } elseif ($linkedType==='reservoir') {
             $master=Database::query("SELECT name,elevation_m,length_m,width_m,height_m,initial_water_level_m,minimum_operational_m3,status FROM reservoirs WHERE id=? AND deleted_at IS NULL",[$linkedId])->fetch();
             $area=max(.01,(float)$master['length_m']*(float)$master['width_m']);
+            $initialLevel=(float)($master['initial_water_level_m']??0);
             $data=array_replace($data,[
-                'name'=>$master['name'],'node_type'=>'tank','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
-                'initial_level_m'=>$master['initial_water_level_m'],'minimum_level_m'=>0,'maximum_level_m'=>$master['height_m'],
-                'tank_diameter_m'=>2*sqrt($area/M_PI),'minimum_volume_m3'=>$master['minimum_operational_m3'],
+                'name'=>$master['name'],'node_type'=>'reservoir','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
+                'total_head_m'=>(float)$master['elevation_m']+$initialLevel,'source_head_m'=>(float)$master['elevation_m']+$initialLevel,
+                'hydraulic_representation'=>'RESERVOIR','base_demand_lps'=>0,
+                'initial_level_m'=>$initialLevel,'minimum_level_m'=>0,'maximum_level_m'=>(float)$master['height_m'],
+                'tank_diameter_m'=>2*sqrt($area/M_PI),'minimum_volume_m3'=>(float)($master['minimum_operational_m3']??0),
             ]);
         } elseif ($linkedType==='service_area') {
             $master=Database::query("SELECT name,elevation_m,peak_hour_demand_lps FROM service_areas WHERE id=? AND deleted_at IS NULL",[$linkedId])->fetch();
@@ -646,7 +649,10 @@ final class DistributionNetworkController
             'minimum_operating_flow_lps'=>$master['minimum_flow'],'maximum_withdrawal_lps'=>$master['maximum_flow'],'base_demand_lps'=>0,
         ]);
         if ($master['type']==='reservoir') return array_replace($node,[
-            'name'=>$master['name'],'node_type'=>'tank','status'=>$master['status'],'elevation_m'=>$master['elevation'],
+            'name'=>$master['name'],'node_type'=>'reservoir','status'=>$master['status'],'elevation_m'=>$master['elevation'],
+            'total_head_m'=>(float)$master['elevation']+(float)($master['initial_level']??0),
+            'source_head_m'=>(float)$master['elevation']+(float)($master['initial_level']??0),
+            'hydraulic_representation'=>'RESERVOIR','base_demand_lps'=>0,
             'initial_level_m'=>$master['initial_level'],'minimum_level_m'=>0,'maximum_level_m'=>$master['maximum_level'],
             'tank_diameter_m'=>$master['tank_diameter'],'minimum_volume_m3'=>$master['minimum_volume'],
         ]);

@@ -106,10 +106,12 @@ final class HydraulicNetworkService
             $master=Database::query("SELECT name,elevation_m,length_m,width_m,height_m,initial_water_level_m,minimum_operational_m3,status FROM reservoirs WHERE id=? AND deleted_at IS NULL",[$id])->fetch();
             if ($master) {
                 $area=max(.01,(float)$master['length_m']*(float)$master['width_m']);
+                $initialLevel=(float)($master['initial_water_level_m']??0);
                 return array_replace($node,[
-                    'name'=>$master['name'],'node_type'=>'tank','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
-                    'initial_level_m'=>$master['initial_water_level_m'],'minimum_level_m'=>0,'maximum_level_m'=>$master['height_m'],
-                    'tank_diameter_m'=>2*sqrt($area/M_PI),'minimum_volume_m3'=>$master['minimum_operational_m3'],
+                    'name'=>$master['name'],'node_type'=>'reservoir','status'=>$master['status'],'elevation_m'=>$master['elevation_m'],
+                    'total_head_m'=>(float)$master['elevation_m']+$initialLevel,'source_head_m'=>(float)$master['elevation_m']+$initialLevel,
+                    'initial_level_m'=>$initialLevel,'minimum_level_m'=>0,'maximum_level_m'=>(float)$master['height_m'],
+                    'tank_diameter_m'=>2*sqrt($area/M_PI),'minimum_volume_m3'=>(float)($master['minimum_operational_m3']??0),
                 ]);
             }
         }
