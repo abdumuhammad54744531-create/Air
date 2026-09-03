@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const outputTextScale=result?outputDisplaySettings.fontScale/100:1,outputLabelMultiplier=result?outputDisplaySettings.labelScale/100:1;
         const labelRows=[],fontSize=11*displaySettings.fontScale/100*outputTextScale;
         for(let rowIndex=0;rowIndex<labelParts.length;rowIndex+=3){
-          const label=document.createElementNS(namespace,'text');label.setAttribute('class','network-route-label');label.setAttribute('dy',String((-8-(rowIndex/3)*(fontSize+3))*outputLabelMultiplier));label.style.fontSize=`${fontSize}px`;
+          const label=document.createElementNS(namespace,'text');label.setAttribute('class','network-route-label');label.setAttribute('dy',String((-15-(rowIndex/3)*(fontSize+6))*outputLabelMultiplier));label.style.fontSize=`${fontSize}px`;
           const textPath=document.createElementNS(namespace,'textPath');textPath.setAttribute('href',`#networkRouteLabelPath${route.id}`);textPath.setAttribute('startOffset','50%');textPath.setAttribute('text-anchor','middle');textPath.textContent=labelParts.slice(rowIndex,rowIndex+3).join(' · ');label.append(textPath);labelRows.push(label);
         }
         const title=document.createElementNS(namespace,'title');title.textContent=`${route.route_name}: ${route.origin_name} → ${route.destination_name}, ${formatWaterNumber(route.pipe_length_m)} m, Ø ${formatWaterNumber(route.pipe_diameter_mm)} mm, ${formatWaterNumber(route.planned_flow_lps)} L/s`;

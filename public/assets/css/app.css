@@ -147,7 +147,7 @@
 #networkDrawRoute.active,#networkAddRoute.active,#networkAddNode.active{background:#0b6db8;border-color:#0b6db8;color:#fff;box-shadow:0 0 0 4px #1877d21e}
 .network-route-preview{fill:none;stroke:#ff8a17;stroke-dasharray:9 7;stroke-linecap:round;stroke-width:4;pointer-events:none}
 .network-route-label-guide{fill:none;stroke:none;pointer-events:none}
-.network-route-label{dominant-baseline:auto;letter-spacing:.01em}
+.network-route-label{dominant-baseline:auto;letter-spacing:.01em;fill:#28445f;paint-order:stroke;stroke:#f8fbfe;stroke-width:8;stroke-linejoin:round;stroke-opacity:.99}
 .inspector-head .node-icon.route{background:linear-gradient(145deg,#0b8cdd,#075a9f);border-radius:12px;transform:none}
 .inspector-description{background:#f4f8fb;border:1px solid #e0eaf1;border-radius:10px;color:#526d82;font-size:.72rem;margin:0 0 14px;padding:10px}
 .inspector-description strong{color:#234a69}
