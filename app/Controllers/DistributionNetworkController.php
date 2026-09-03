@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Core\Database;
+use App\Services\ServiceAreaSchemaService;
 use PDOException;
 
 final class DistributionNetworkController
@@ -9,6 +10,7 @@ final class DistributionNetworkController
     public function handle(string $method, ?int $id = null): void
     {
         require_auth(['super_admin','administrator','operator']);
+        ServiceAreaSchemaService::ensureElevationColumn();
         if ($method === 'POST' && ($_POST['_method'] ?? '') === 'DELETE') {
             $this->delete($id ?: (int)($_POST['network_id'] ?? 0));
             return;
@@ -130,8 +132,8 @@ final class DistributionNetworkController
         foreach (Database::query("SELECT r.*,r.effective_capacity_m3 AS value FROM reservoirs r JOIN distribution_node_positions p ON p.node_type='reservoir' AND p.entity_id=r.id AND p.project_id=? WHERE r.deleted_at IS NULL ORDER BY r.name",[$project['id']])->fetchAll() as $row) {
             $bulkNodes[] = $row + ['key'=>'reservoir:'.$row['id'],'type'=>'reservoir','type_label'=>'Reservoir','node_kind'=>'reservoir','value_label'=>'Kapasitas','value_unit'=>'m³','has_elevation'=>true,'has_status'=>true];
         }
-        foreach (Database::query("SELECT a.*,a.peak_hour_demand_lps AS value,a.priority AS status,NULL AS elevation_m FROM service_areas a JOIN distribution_node_positions p ON p.node_type='service_area' AND p.entity_id=a.id AND p.project_id=? WHERE a.deleted_at IS NULL ORDER BY a.name",[$project['id']])->fetchAll() as $row) {
-            $bulkNodes[] = $row + ['key'=>'service_area:'.$row['id'],'type'=>'service_area','type_label'=>'Wilayah Layanan','node_kind'=>'service_area','value_label'=>'Kebutuhan puncak','value_unit'=>'L/s','has_elevation'=>false,'has_status'=>true];
+        foreach (Database::query("SELECT a.*,a.peak_hour_demand_lps AS value,a.priority AS status FROM service_areas a JOIN distribution_node_positions p ON p.node_type='service_area' AND p.entity_id=a.id AND p.project_id=? WHERE a.deleted_at IS NULL ORDER BY a.name",[$project['id']])->fetchAll() as $row) {
+            $bulkNodes[] = $row + ['key'=>'service_area:'.$row['id'],'type'=>'service_area','type_label'=>'Wilayah Layanan','node_kind'=>'service_area','value_label'=>'Kebutuhan puncak','value_unit'=>'L/s','has_elevation'=>true,'has_status'=>true];
         }
         foreach (Database::query("SELECT n.*,n.base_demand_lps AS value FROM distribution_nodes n WHERE project_id=? AND deleted_at IS NULL ORDER BY id",[$project['id']])->fetchAll() as $row) {
             $bulkNodes[] = $row + ['key'=>'node:'.$row['id'],'type'=>'node','type_label'=>'Titik Manual','node_kind'=>$row['node_type'],'value_label'=>'Base demand','value_unit'=>'L/s','has_elevation'=>true,'has_status'=>true];
@@ -190,7 +192,7 @@ final class DistributionNetworkController
                         ]);
                     } elseif ($type==='service_area') {
                         $this->bulkUpdateRecord('service_areas',$id,$row,[
-                            'code'=>'required','name'=>'required','population'=>'int-zero','house_connections'=>'int-zero','public_facilities'=>'int-zero',
+                            'code'=>'required','name'=>'required','elevation_m'=>'number-null','population'=>'int-zero','house_connections'=>'int-zero','public_facilities'=>'int-zero',
                             'liters_per_person_day'=>'number-zero','public_facility_liters_day'=>'number-zero','max_day_factor'=>'number-zero',
                             'peak_hour_factor'=>'number-zero','network_loss_percent'=>'number-zero','service_hours_day'=>'number-zero',
                             'average_demand_lps'=>'number-zero','max_day_demand_lps'=>'number-zero','peak_hour_demand_lps'=>'number-zero',
@@ -405,7 +407,7 @@ final class DistributionNetworkController
         // tetap harus muncul di kanvas dan pada pilihan "Hubungkan dengan Data Master".
         $sources = Database::query("SELECT s.id,s.code,s.name,s.latitude,s.longitude,s.elevation_m,s.min_flow_lps,s.normal_flow_lps,s.max_flow_lps,s.current_sensor_flow_lps,s.status,s.description FROM water_sources s WHERE s.deleted_at IS NULL ORDER BY s.name")->fetchAll();
         $reservoirs = Database::query("SELECT r.id,r.code,r.name,r.elevation_m,r.effective_capacity_m3,r.initial_volume_m3,r.status,r.description FROM reservoirs r WHERE r.deleted_at IS NULL ORDER BY r.name")->fetchAll();
-        $areas = Database::query("SELECT a.id,a.code,a.name,a.population,a.peak_hour_demand_lps,a.priority,a.description FROM service_areas a WHERE a.deleted_at IS NULL ORDER BY FIELD(a.priority,'sangat_tinggi','tinggi','sedang','rendah'),a.name")->fetchAll();
+        $areas = Database::query("SELECT a.id,a.code,a.name,a.elevation_m,a.population,a.peak_hour_demand_lps,a.priority,a.description FROM service_areas a WHERE a.deleted_at IS NULL ORDER BY FIELD(a.priority,'sangat_tinggi','tinggi','sedang','rendah'),a.name")->fetchAll();
         $this->appendNodes($nodes, $sources, 'source', $positions, 12);
         $this->appendNodes($nodes, $reservoirs, 'reservoir', $positions, 48);
         $this->appendNodes($nodes, $areas, 'service_area', $positions, 84);

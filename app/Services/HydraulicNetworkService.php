@@ -12,6 +12,7 @@ final class HydraulicNetworkService
 {
     public function loadModel(?int $projectId=null): array
     {
+        ServiceAreaSchemaService::ensureElevationColumn();
         if (!$projectId) $projectId=(int)(Database::query("SELECT id FROM network_projects WHERE deleted_at IS NULL ORDER BY is_default DESC,id LIMIT 1")->fetchColumn()?:0);
         if (!$projectId) throw new RuntimeException('Proyek jaringan tidak ditemukan.');
         $positionRows=Database::query("SELECT node_type,entity_id,position_x,position_y FROM distribution_node_positions WHERE project_id=?",[$projectId])->fetchAll();
@@ -32,7 +33,6 @@ final class HydraulicNetworkService
         };
 
         foreach (Database::query("SELECT * FROM water_sources WHERE deleted_at IS NULL")->fetchAll() as $row) {
-            if (!isset($positions['source:'.$row['id']])) continue;
             $append($row,'source','reservoir',[
                 'head_m'=>$row['elevation_m']!==null?(float)$row['elevation_m']:null,
                 'minimum_flow_lps'=>(float)$row['min_flow_lps'],'normal_flow_lps'=>(float)$row['normal_flow_lps'],
@@ -41,7 +41,6 @@ final class HydraulicNetworkService
             ]);
         }
         foreach (Database::query("SELECT * FROM reservoirs WHERE deleted_at IS NULL")->fetchAll() as $row) {
-            if (!isset($positions['reservoir:'.$row['id']])) continue;
             $area=max(.01,(float)$row['length_m']*(float)$row['width_m']);$equivalentDiameter=2*sqrt($area/M_PI);
             $append($row,'reservoir','tank',[
                 'initial_level_m'=>(float)$row['initial_water_level_m'],'minimum_level_m'=>0.0,
@@ -50,8 +49,7 @@ final class HydraulicNetworkService
             ]);
         }
         foreach (Database::query("SELECT * FROM service_areas WHERE deleted_at IS NULL")->fetchAll() as $row) {
-            if (!isset($positions['service_area:'.$row['id']])) continue;
-            $row['elevation_m']=null;$row['status']='aktif';
+            $row['status']='aktif';
             $append($row,'service_area','junction',[
                 'base_demand_lps'=>(float)$row['peak_hour_demand_lps'],'demand_pattern_id'=>null,
                 'minimum_pressure_m'=>null,'required_pressure_m'=>null,'pressure_exponent'=>.5,

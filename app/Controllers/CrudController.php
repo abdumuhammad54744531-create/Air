@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Database;
 use App\Services\GoogleSheetSensorService;
+use App\Services\ServiceAreaSchemaService;
 
 final class CrudController
 {
@@ -19,7 +20,7 @@ final class CrudController
         'announcements'=>['table'=>'announcements','title'=>'Informasi Publik','fields'=>['title'=>'Judul','slug'=>'Slug','category'=>'Kategori','summary'=>'Ringkasan','content'=>'Isi','published_at'=>'Tanggal Publikasi','status'=>'Status','show_on_home'=>'Tampil di Beranda']],
         'water-sources'=>['table'=>'water_sources','title'=>'Data Sumber Air','fields'=>['location_id'=>'Lokasi','sensor_id'=>'Sensor Debit','code'=>'Kode Sumber','name'=>'Nama Sumber','source_type'=>'Jenis Sumber','latitude'=>'Latitude','longitude'=>'Longitude','elevation_m'=>'Elevasi (m)','min_flow_lps'=>'Debit Minimum (L/s)','normal_flow_lps'=>'Debit Normal (L/s)','max_flow_lps'=>'Debit Maksimum (L/s)','current_sensor_flow_lps'=>'Debit Sensor Terkini','measurement_season'=>'Musim Pengukuran','water_quality'=>'Kualitas Air','status'=>'Status','source_loss_percent'=>'Kehilangan Sumber (%)','last_measured_at'=>'Pengukuran Terakhir','description'=>'Keterangan','is_public'=>'Tampil Publik']],
         'reservoirs'=>['table'=>'reservoirs','title'=>'Data Reservoir','fields'=>['location_id'=>'Lokasi','code'=>'Kode Reservoir','name'=>'Nama Reservoir','reservoir_type'=>'Jenis Reservoir','latitude'=>'Latitude','longitude'=>'Longitude','elevation_m'=>'Elevasi (m)','length_m'=>'Panjang Bak (m)','width_m'=>'Lebar Bak (m)','height_m'=>'Tinggi Bak (m)','geometric_volume_m3'=>'Volume Geometris (m³)','effective_percent'=>'Volume Efektif (%)','effective_capacity_m3'=>'Kapasitas Efektif (m³)','minimum_operational_m3'=>'Volume Minimum (m³)','initial_volume_m3'=>'Volume Awal (m³)','initial_water_level_m'=>'Tinggi Air Awal (m)','max_inflow_lps'=>'Debit Masuk Maksimum','max_outflow_lps'=>'Debit Keluar Maksimum','loss_percent'=>'Kehilangan (%)','status'=>'Status','description'=>'Keterangan']],
-        'service-areas'=>['table'=>'service_areas','title'=>'Data Wilayah Layanan','fields'=>['code'=>'Kode Wilayah','name'=>'Nama Wilayah','population'=>'Jumlah Penduduk','house_connections'=>'Sambungan Rumah','public_facilities'=>'Fasilitas Umum','liters_per_person_day'=>'Kebutuhan/orang/hari','public_facility_liters_day'=>'Kebutuhan Fasilitas (L/hari)','max_day_factor'=>'Faktor Hari Maksimum','peak_hour_factor'=>'Faktor Jam Puncak','network_loss_percent'=>'Kehilangan Jaringan (%)','service_hours_day'=>'Jam Pelayanan/hari','average_demand_lps'=>'Debit Rata-rata','max_day_demand_lps'=>'Debit Hari Maksimum','peak_hour_demand_lps'=>'Debit Jam Puncak','priority'=>'Prioritas','description'=>'Keterangan','is_public'=>'Tampil Publik']],
+        'service-areas'=>['table'=>'service_areas','title'=>'Data Wilayah Layanan','fields'=>['code'=>'Kode Wilayah','name'=>'Nama Wilayah','elevation_m'=>'Elevasi Wilayah (m)','population'=>'Jumlah Penduduk','house_connections'=>'Sambungan Rumah','public_facilities'=>'Fasilitas Umum','liters_per_person_day'=>'Kebutuhan/orang/hari','public_facility_liters_day'=>'Kebutuhan Fasilitas (L/hari)','max_day_factor'=>'Faktor Hari Maksimum','peak_hour_factor'=>'Faktor Jam Puncak','network_loss_percent'=>'Kehilangan Jaringan (%)','service_hours_day'=>'Jam Pelayanan/hari','average_demand_lps'=>'Debit Rata-rata','max_day_demand_lps'=>'Debit Hari Maksimum','peak_hour_demand_lps'=>'Debit Jam Puncak','priority'=>'Prioritas','description'=>'Keterangan','is_public'=>'Tampil Publik']],
         'distribution-networks'=>['table'=>'distribution_networks','title'=>'Jaringan Distribusi','fields'=>['route_name'=>'Nama Jalur','origin_type'=>'Jenis Titik Asal','origin_id'=>'ID Titik Asal','destination_type'=>'Jenis Tujuan','destination_id'=>'ID Tujuan','pipe_length_m'=>'Panjang Pipa (m)','pipe_diameter_mm'=>'Diameter Pipa (mm)','pipe_type'=>'Jenis Pipa','start_elevation_m'=>'Elevasi Awal','end_elevation_m'=>'Elevasi Akhir','elevation_difference_m'=>'Beda Elevasi','max_pipe_capacity_lps'=>'Kapasitas Maksimum Pipa','planned_flow_lps'=>'Debit Rencana','loss_percent'=>'Kehilangan (%)','pump_status'=>'Status Pompa','pump_capacity_lps'=>'Kapasitas Pompa','pump_hours'=>'Jam Operasi Pompa','flow_priority'=>'Prioritas Aliran','status'=>'Status','description'=>'Keterangan']],
         'simulation-scenarios'=>['table'=>'simulation_scenarios','title'=>'Skenario Alternatif','fields'=>['scenario_name'=>'Nama Skenario','season'=>'Musim','population_growth_percent'=>'Pertumbuhan Penduduk (%)','source_reduction_percent'=>'Penurunan Debit Sumber (%)','assumptions'=>'Asumsi','status'=>'Status']],
         'activity-logs'=>['table'=>'activity_logs','title'=>'Log Aktivitas','roles'=>['super_admin'],'readonly'=>true,'fields'=>[]],
@@ -38,7 +39,7 @@ final class CrudController
         'settings'=>['setting_key','setting_value','setting_type'],
         'water-sources'=>['location_id','code','name','source_type','min_flow_lps','normal_flow_lps','max_flow_lps','status'],
         'reservoirs'=>['code','name','reservoir_type','length_m','width_m','height_m','effective_percent','status'],
-        'service-areas'=>['code','name','population','liters_per_person_day','max_day_factor','peak_hour_factor','network_loss_percent','service_hours_day','priority'],
+        'service-areas'=>['code','name','elevation_m','population','liters_per_person_day','max_day_factor','peak_hour_factor','network_loss_percent','service_hours_day','priority'],
         'distribution-networks'=>['route_name','origin_type','origin_id','destination_type','destination_id','pipe_length_m','pipe_diameter_mm','max_pipe_capacity_lps','status'],
         'simulation-scenarios'=>['scenario_name','season','status'],
     ];
@@ -51,6 +52,7 @@ final class CrudController
         require_auth($def['roles'] ?? []);
         if ($module === 'locations') $this->ensureLocationPhotoSchema();
         if ($module === 'devices') $this->ensureDeviceSourceField();
+        if ($module === 'service-areas') ServiceAreaSchemaService::ensureElevationColumn();
         if (in_array($module, ['devices', 'sensors'], true)) (new GoogleSheetSensorService())->ensureSchema();
         if ($module === 'sensors' && $method === 'GET') { $this->sensorSheetIndex(); return; }
         if ($method === 'DELETE' || ($method === 'POST' && ($_POST['_method'] ?? '') === 'DELETE')) { $this->delete($module,$def,$id); return; }
