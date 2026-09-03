@@ -400,9 +400,12 @@ final class DistributionNetworkController
         }
 
         $nodes = [];
-        $sources = Database::query("SELECT s.id,s.code,s.name,s.latitude,s.longitude,s.elevation_m,s.min_flow_lps,s.normal_flow_lps,s.max_flow_lps,s.current_sensor_flow_lps,s.status,s.description FROM water_sources s JOIN distribution_node_positions p ON p.node_type='source' AND p.entity_id=s.id AND p.project_id=? WHERE s.deleted_at IS NULL ORDER BY s.name",[$project['id']])->fetchAll();
-        $reservoirs = Database::query("SELECT r.id,r.code,r.name,r.elevation_m,r.effective_capacity_m3,r.initial_volume_m3,r.status,r.description FROM reservoirs r JOIN distribution_node_positions p ON p.node_type='reservoir' AND p.entity_id=r.id AND p.project_id=? WHERE r.deleted_at IS NULL ORDER BY r.name",[$project['id']])->fetchAll();
-        $areas = Database::query("SELECT a.id,a.code,a.name,a.population,a.peak_hour_demand_lps,a.priority,a.description FROM service_areas a JOIN distribution_node_positions p ON p.node_type='service_area' AND p.entity_id=a.id AND p.project_id=? WHERE a.deleted_at IS NULL ORDER BY FIELD(a.priority,'sangat_tinggi','tinggi','sedang','rendah'),a.name",[$project['id']])->fetchAll();
+        // Posisi diagram bersifat khusus proyek, sedangkan data master bersifat global.
+        // Jangan memakai INNER JOIN ke tabel posisi: master yang belum pernah digeser
+        // tetap harus muncul di kanvas dan pada pilihan "Hubungkan dengan Data Master".
+        $sources = Database::query("SELECT s.id,s.code,s.name,s.latitude,s.longitude,s.elevation_m,s.min_flow_lps,s.normal_flow_lps,s.max_flow_lps,s.current_sensor_flow_lps,s.status,s.description FROM water_sources s WHERE s.deleted_at IS NULL ORDER BY s.name")->fetchAll();
+        $reservoirs = Database::query("SELECT r.id,r.code,r.name,r.elevation_m,r.effective_capacity_m3,r.initial_volume_m3,r.status,r.description FROM reservoirs r WHERE r.deleted_at IS NULL ORDER BY r.name")->fetchAll();
+        $areas = Database::query("SELECT a.id,a.code,a.name,a.population,a.peak_hour_demand_lps,a.priority,a.description FROM service_areas a WHERE a.deleted_at IS NULL ORDER BY FIELD(a.priority,'sangat_tinggi','tinggi','sedang','rendah'),a.name")->fetchAll();
         $this->appendNodes($nodes, $sources, 'source', $positions, 12);
         $this->appendNodes($nodes, $reservoirs, 'reservoir', $positions, 48);
         $this->appendNodes($nodes, $areas, 'service_area', $positions, 84);

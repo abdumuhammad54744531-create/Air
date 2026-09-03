@@ -688,13 +688,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     document.querySelectorAll('#networkNodeTabs [data-property-tab]').forEach(button=>button.addEventListener('click',()=>setNodeSection(button.dataset.propertyTab)));
     document.querySelector('#networkNodeLinkedKey')?.addEventListener('change',event=>{
-      const master=nodeByKey[event.target.value];if(!master||master.type!=='source')return;
-      document.querySelector('#networkNodeName').value=master.name||'';
-      document.querySelector('#networkNodeElevation').value=master.elevation??'';
-      document.querySelector('#networkNodeTotalHead').value=master.elevation??'';
-      document.querySelector('#networkSourceHead').value=master.elevation??'';
-      document.querySelector('#networkMinimumOperatingFlow').value=master.minimum_flow??'';
-      document.querySelector('#networkMaximumWithdrawal').value=master.maximum_flow??'';
+      const master=nodeByKey[event.target.value];if(!master)return;
+      const setValue=(selector,value)=>{const field=document.querySelector(selector);if(field&&value!==null&&value!==undefined)field.value=value};
+      setValue('#networkNodeName',master.name||'');
+      setValue('#networkNodeElevation',master.elevation);
+      if(master.type==='source'){
+        setValue('#networkNodeTotalHead',master.elevation);setValue('#networkSourceHead',master.elevation);
+        setValue('#networkMinimumOperatingFlow',master.minimum_flow);setValue('#networkMaximumWithdrawal',master.maximum_flow);
+      }else if(master.type==='reservoir'){
+        setValue('#networkTankElevation',master.elevation);setValue('#networkTankInitialLevel',master.initial_volume);
+      }else if(master.type==='service_area'){
+        setValue('#networkNodeDemand',master.demand);
+      }
     });
     const toggleNodeTypeFields=()=>{
       const kind=nodeKindSelect.value;
