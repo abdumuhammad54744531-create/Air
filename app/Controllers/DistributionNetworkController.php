@@ -347,10 +347,54 @@ final class DistributionNetworkController
             'status'=>(string)($_POST['node_status']??'aktif'),
             'description'=>trim((string)($_POST['node_description']??'')) ?: null,
         ];
+        // Form hanya mengirim kolom milik jenis titik yang sedang terlihat.
+        // Kolom Junction yang tersembunyi setelah berubah menjadi Reservoir
+        // harus tetap mengikuti titik yang sama, bukan tertimpa 0/null.
+        $preserveWhenOmitted=[
+            'elevation_m'=>'elevation_m','base_demand_lps'=>'base_demand_lps',
+            'initial_pressure_m'=>'initial_pressure_m','minimum_pressure_m'=>'minimum_pressure_m',
+            'maximum_pressure_m'=>'maximum_pressure_m','emitter_coefficient'=>'emitter_coefficient',
+            'initial_quality'=>'initial_quality','source_quality'=>'source_quality',
+            'head_pattern'=>'head_pattern','initial_level_m'=>'initial_level_m',
+            'minimum_level_m'=>'minimum_level_m','maximum_level_m'=>'maximum_level_m',
+            'tank_diameter_m'=>'tank_diameter_m','minimum_volume_m3'=>'minimum_volume_m3',
+            'volume_curve'=>'volume_curve','mixing_model'=>'mixing_model',
+            'required_pressure_m'=>'required_pressure_m','demand_category'=>'demand_category',
+            'pressure_exponent'=>'pressure_exponent','measured_pressure_m'=>'measured_pressure_m',
+            'pressure_measured_at'=>'pressure_measured_at','source_head_m'=>'source_head_m',
+            'static_water_level_m'=>'static_water_level_m','dynamic_water_level_m'=>'dynamic_water_level_m',
+            'maximum_withdrawal_lps'=>'maximum_withdrawal_lps','minimum_operating_flow_lps'=>'minimum_operating_flow_lps',
+            'source_pattern_id'=>'source_pattern_id','connected_pump_node_id'=>'connected_pump_node_id',
+            'pump_curve'=>'pump_curve','pump_power_kw'=>'pump_power_kw','pump_speed'=>'pump_speed',
+            'speed_pattern'=>'speed_pattern','pump_curve_id'=>'pump_curve_id','efficiency_curve_id'=>'efficiency_curve_id',
+            'inlet_node_id'=>'inlet_node_id','outlet_node_id'=>'outlet_node_id','nominal_power_kw'=>'nominal_power_kw',
+            'unit_count'=>'unit_count','active_unit_count'=>'active_unit_count','initial_status'=>'initial_status',
+            'control_mode'=>'control_mode','start_level_m'=>'start_level_m','stop_level_m'=>'stop_level_m',
+            'start_pressure_m'=>'start_pressure_m','stop_pressure_m'=>'stop_pressure_m',
+            'operating_schedule_id'=>'operating_schedule_id','valve_type'=>'valve_type','valve_setting'=>'valve_setting',
+            'meter_parameter'=>'meter_parameter','meter_unit'=>'meter_unit','meter_target_type'=>'meter_target_type',
+            'meter_target_id'=>'meter_target_id','meter_sensor_id'=>'meter_sensor_id','meter_current_value'=>'meter_current_value',
+            'meter_calibrated_value'=>'meter_calibrated_value','meter_calibration_factor'=>'meter_calibration_factor',
+            'meter_minimum_limit'=>'meter_minimum_limit','meter_maximum_limit'=>'meter_maximum_limit',
+            'meter_measured_at'=>'meter_measured_at','communication_status'=>'communication_status',
+        ];
+        foreach ($preserveWhenOmitted as $column=>$postField) {
+            if (!array_key_exists($postField,$_POST)) $data[$column]=$existingNode[$column]??null;
+        }
+        if (!array_key_exists('demand_pattern_id',$_POST) && !array_key_exists('demand_pattern',$_POST)) {
+            $data['demand_pattern_id']=$existingNode['demand_pattern_id']??null;
+            $data['demand_pattern']=$existingNode['demand_pattern']??null;
+        }
+        if (!array_key_exists('tank_overflow',$_POST) && $data['node_type']!=='tank') {
+            $data['tank_overflow']=$existingNode['tank_overflow']??0;
+        }
         // Saat Junction diubah menjadi sumber/head tetap, elevasi lama adalah
         // nilai awal yang aman untuk total head dan tetap dapat diedit lagi.
         if (in_array($data['node_type'],['source','reservoir'],true) && trim((string)($_POST['total_head_m']??''))==='') {
-            $data['total_head_m']=$existingNode['total_head_m'] ?? $existingNode['source_head_m'] ?? $existingNode['elevation_m'];
+            $wasHeadNode=in_array((string)($existingNode['node_type']??''),['source','reservoir'],true);
+            $data['total_head_m']=$wasHeadNode
+                ? ($existingNode['total_head_m'] ?? $existingNode['source_head_m'] ?? $existingNode['elevation_m'])
+                : ($existingNode['elevation_m'] ?? $existingNode['total_head_m'] ?? 0);
         }
         // Master adalah sumber kebenaran titik yang ditautkan: nilai teknis tidak boleh berbeda.
         if ($linkedType==='source') {
