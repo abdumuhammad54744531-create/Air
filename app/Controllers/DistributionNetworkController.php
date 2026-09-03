@@ -431,6 +431,7 @@ final class DistributionNetworkController
                 'speed_pattern'=>$row['speed_pattern'],'valve_type'=>$row['valve_type'],'valve_setting'=>(float)$row['valve_setting'],
                 'meter_parameter'=>$row['meter_parameter'],'meter_unit'=>$row['meter_unit'],
                 'linked_key'=>$row['linked_type']&&$row['linked_id']?$row['linked_type'].':'.$row['linked_id']:'',
+                'master_type'=>$row['linked_type']?:null,
                 'required_pressure'=>(float)$row['required_pressure_m'],'demand_category'=>$row['demand_category'],
                 'pressure_exponent'=>(float)$row['pressure_exponent'],'measured_pressure'=>$row['measured_pressure_m'],
                 'pressure_measured_at'=>$row['pressure_measured_at'],'demand_pattern_id'=>$row['demand_pattern_id'],

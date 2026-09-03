@@ -83,14 +83,14 @@ $reservoirCount=count(array_filter($nodes,fn($node)=>$node['type']==='reservoir'
           </defs>
         </svg>
         <div id="networkNodes">
-          <?php foreach($nodes as $node):?>
-            <button type="button" class="network-node <?=e(str_replace('_','-',$node['type']))?> <?=$node['type']==='node'?'kind-'.e($node['node_kind']):''?>"
+          <?php foreach($nodes as $node):$visualType=$node['type']==='node'&&in_array($node['master_type']??null,['source','reservoir','service_area'],true)?$node['master_type']:$node['type'];$visualIcon=$visualType==='node'?($manualKindIcons[$node['node_kind']]??'bi-circle-fill'):($typeIcons[$visualType]??'bi-circle-fill');?>
+            <button type="button" class="network-node <?=e(str_replace('_','-',$node['type']))?> <?=$node['type']==='node'?'kind-'.e(str_replace('_','-',$visualType)):''?>"
               data-node-key="<?=e($node['key'])?>" data-node-type="<?=e($node['type'])?>"
               style="left:<?=$node['x']?>%;top:<?=$node['y']?>%"
               title="Klik untuk memilih · Geser untuk memindahkan">
-              <span class="node-icon"><i class="bi <?=$node['type']==='node'?($manualKindIcons[$node['node_kind']]??'bi-circle-fill'):$typeIcons[$node['type']]?>"></i></span>
+              <span class="node-icon"><i class="bi <?=$visualIcon?>"></i></span>
               <span class="node-copy"><strong><?=e($node['name'])?></strong><small><?=e($node['code'])?></small></span>
-              <span class="node-kind-label"><?=e($node['type']==='node'?ucfirst($node['node_kind']):$typeLabels[$node['type']])?></span>
+              <span class="node-kind-label"><?=e($visualType==='node'?ucfirst($node['node_kind']):$typeLabels[$visualType])?></span>
               <span class="node-elevation">Elev. <?=number_format($node['elevation'],2,',','.')?> m</span>
               <span class="node-demand"><?php if($node['type']==='source'):?>Debit <?=number_format($node['sensor_flow']?:$node['normal_flow'],2,',','.')?> L/s<?php elseif($node['type']==='reservoir'):?>Kapasitas <?=number_format($node['capacity'],1,',','.')?> m³<?php elseif($node['type']==='service_area'):?>Kebutuhan <?=number_format($node['demand'],2,',','.')?> L/s<?php else:?>Demand <?=number_format($node['base_demand'],2,',','.')?> L/s<?php endif?></span>
               <?php if(!empty($node['description'])):?><span class="node-description"><?=e($node['description'])?></span><?php endif?>
@@ -228,13 +228,14 @@ $reservoirCount=count(array_filter($nodes,fn($node)=>$node['type']==='reservoir'
           <tbody>
             <?php if(!$nodes):?><tr><td colspan="7" class="text-center text-secondary py-4">Belum ada titik jaringan.</td></tr><?php endif?>
             <?php foreach($nodes as $node):
+              $visualType=$node['type']==='node'&&in_array($node['master_type']??null,['source','reservoir','service_area'],true)?$node['master_type']:$node['type'];
               $connectedCount=count(array_filter($networks,fn($route)=>$route['origin_key']===$node['key']||$route['destination_key']===$node['key']));
               $nodeKind=$node['type']==='node'?ucwords(str_replace('_',' ',$node['node_kind'])):$typeLabels[$node['type']];
               $nodeFlow=$node['type']==='source'?($node['sensor_flow']?:$node['normal_flow']):($node['type']==='service_area'?$node['demand']:($node['type']==='node'?$node['base_demand']:null));
             ?>
               <tr>
                 <td><strong><?=e($node['code'])?></strong><small class="d-block text-secondary"><?=e($node['name'])?></small></td>
-                <td><span class="network-kind-chip"><i class="bi <?=$node['type']==='node'?($manualKindIcons[$node['node_kind']]??'bi-circle-fill'):$typeIcons[$node['type']]?>"></i><?=e($nodeKind)?></span></td>
+                <td><span class="network-kind-chip"><i class="bi <?=$visualType==='node'?($manualKindIcons[$node['node_kind']]??'bi-circle-fill'):($typeIcons[$visualType]??'bi-circle-fill')?>"></i><?=e($visualType==='node'?$nodeKind:$typeLabels[$visualType])?></span></td>
                 <td><?=number_format((float)$node['elevation'],2,',','.')?> m</td>
                 <td><?=$nodeFlow===null?'—':number_format((float)$nodeFlow,2,',','.').' L/s'?></td>
                 <td><strong><?=$connectedCount?></strong> pipa</td>
