@@ -25,6 +25,13 @@ for writable_dir in "$APP_DIR/storage" "$APP_DIR/public/uploads"; do
     find "$writable_dir" -type d -exec chmod 2770 {} +
     find "$writable_dir" -type f -exec chmod 0660 {} +
 done
+# PHP-FPM menolak membaca file sesi yang dibuat oleh UID lain. Deploy berjalan
+# sebagai root/abdu, jadi direktori dan seluruh file sesi harus dikembalikan ke
+# pengguna proses PHP setelah chown umum di atas.
+install -d -m 2770 -o www-data -g www-data "$APP_DIR/storage/sessions"
+chown -R www-data:www-data "$APP_DIR/storage/sessions"
+find "$APP_DIR/storage/sessions" -type d -exec chmod 2770 {} +
+find "$APP_DIR/storage/sessions" -type f -exec chmod 0600 {} +
 chmod 0640 "$APP_DIR/.env"
 nginx -t
 systemctl reload nginx

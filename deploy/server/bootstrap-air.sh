@@ -78,6 +78,12 @@ for writable_dir in "$APP_DIR/storage" "$APP_DIR/public/uploads"; do
     find "$writable_dir" -type d -exec chmod 2770 {} +
     find "$writable_dir" -type f -exec chmod 0660 {} +
 done
+# PHP-FPM menolak membaca file sesi yang dibuat oleh UID lain. Pastikan sesi
+# selalu dimiliki www-data setelah bootstrap mengatur kepemilikan aplikasi.
+install -d -m 2770 -o www-data -g www-data "$APP_DIR/storage/sessions"
+chown -R www-data:www-data "$APP_DIR/storage/sessions"
+find "$APP_DIR/storage/sessions" -type d -exec chmod 2770 {} +
+find "$APP_DIR/storage/sessions" -type f -exec chmod 0600 {} +
 chmod 0640 "$APP_DIR/.env"
 
 if [[ ! -x /usr/local/bin/runepanet || ! -f /usr/local/lib/libepanet2.so ]]; then
